@@ -44,7 +44,8 @@ async function handleRelease() {
     const data = await translateAudio(blob);
     emit("result", data);
   } catch (err) {
-    emit("error", "서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요.");
+    console.error(err);
+    emit("error", err?.message || "서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요.");
   } finally {
     state.value = "idle";
   }
