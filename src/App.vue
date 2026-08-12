@@ -15,7 +15,7 @@ const messages = reactive([
   {
     type: "ai",
     label: "AI 인사",
-    text: "안녕하우꽈, 아주대학교병원 상담 도와드리쿠다. 무신 거 궁금하우꽈?",
+    text: "안녕하우꽈, 제주120 만덕콜센터 AI 상담원이우다. 행정이나 생활 민원, 교통·관광, 복지 같은 궁금한 거 편하게 말씀해줍서.",
   },
 ]);
 
@@ -55,7 +55,7 @@ async function handleResult(data) {
   // 3) Gemini가 만든 제주어 AI ARS 답변을 별도 AI 말풍선로 표시
   messages.push({
     type: "ai",
-    label: "AI ARS 답변",
+    label: "만덕콜센터 AI 답변",
     text: data.ars_reply_text || "답변을 생성했습니다.",
     audioUrl,
     replayable: Boolean(audioUrl),
