@@ -1,27 +1,75 @@
 <script setup>
-import { reactive } from "vue";
+import { onBeforeUnmount, reactive } from "vue";
 import CallHeader from "./components/CallHeader.vue";
 import ChatLog from "./components/ChatLog.vue";
 import MicButton from "./components/MicButton.vue";
 import StatsPanel from "./components/StatsPanel.vue";
+import {
+  base64AudioToObjectUrl,
+  playAudio,
+  revokeAudioUrl,
+  stopAudio,
+} from "./services/audio";
 
 const messages = reactive([
-  { type: "ai", text: "안녕하우꽈, 아주대학교병원 상담 도와드리쿠다. 무신 거 궁금하우꽈?" },
+  {
+    type: "ai",
+    label: "AI 인사",
+    text: "안녕하우꽈, 아주대학교병원 상담 도와드리쿠다. 무신 거 궁금하우꽈?",
+  },
 ]);
 
 const stats = reactive({ turns: 0, jejuWords: 0, stdWords: 0, totalTime: 0 });
 const statsLog = reactive([]);
+const createdAudioUrls = [];
 
 function countWords(text) {
-  return text.trim().split(/\s+/).filter(Boolean).length;
+  return String(text || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
 }
 
-function handleResult(data) {
-  messages.push({ type: "user", jejuText: data.jeju_text, standardText: data.standard_text });
+async function handleResult(data) {
+  // 1) 사용자의 제주어 STT 결과 + 표준어 번역 표시
+  messages.push({
+    type: "user",
+    jejuText: data.jeju_text || "",
+    standardText: data.standard_text || "",
+  });
+
+  // 2) API가 반환한 WAV(base64)를 브라우저에서 재생 가능한 URL로 변환
+  let audioUrl = data.audio_url || null;
+  if (!audioUrl && data.audio_base64) {
+    try {
+      audioUrl = base64AudioToObjectUrl(
+        data.audio_base64,
+        data.audio_mime_type || "audio/wav"
+      );
+      if (audioUrl) createdAudioUrls.push(audioUrl);
+    } catch (error) {
+      console.error("Failed to decode TTS audio:", error);
+    }
+  }
+
+  // 3) Gemini가 만든 제주어 AI ARS 답변을 별도 AI 말풍선로 표시
+  messages.push({
+    type: "ai",
+    label: "AI ARS 답변",
+    text: data.ars_reply_text || "답변을 생성했습니다.",
+    audioUrl,
+    replayable: Boolean(audioUrl),
+  });
+
+  // 4) 답변을 받는 즉시 TTS 음성 재생
+  // 브라우저 자동재생 정책으로 막히는 경우에도 텍스트 클릭으로 다시 재생할 수 있다.
+  if (audioUrl) {
+    await playAudio(audioUrl);
+  }
 
   stats.turns += 1;
-  stats.jejuWords += countWords(data.jeju_text || "");
-  stats.stdWords += countWords(data.standard_text || "");
+  stats.jejuWords += countWords(data.jeju_text);
+  stats.stdWords += countWords(data.standard_text);
   stats.totalTime += Number(data.processing_time) || 0;
 
   statsLog.unshift({
@@ -35,6 +83,11 @@ function handleResult(data) {
 function handleError(message) {
   messages.push({ type: "error", text: message });
 }
+
+onBeforeUnmount(() => {
+  stopAudio();
+  createdAudioUrls.forEach(revokeAudioUrl);
+});
 </script>
 
 <template>
