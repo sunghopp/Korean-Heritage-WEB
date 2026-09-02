@@ -1,7 +1,8 @@
 <script setup>
-import { onBeforeUnmount, reactive } from "vue";
+import { onBeforeUnmount, reactive, ref } from "vue";
 import CallHeader from "./components/CallHeader.vue";
 import ChatLog from "./components/ChatLog.vue";
+import DashboardView from "./components/DashboardView.vue";
 import MicButton from "./components/MicButton.vue";
 import StatsPanel from "./components/StatsPanel.vue";
 import {
@@ -10,6 +11,8 @@ import {
   revokeAudioUrl,
   stopAudio,
 } from "./services/audio";
+
+const activeTab = ref("ars");
 
 const messages = reactive([
   {
@@ -92,20 +95,66 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="app">
-    <CallHeader />
+    <nav class="tab-bar">
+      <button
+        type="button"
+        class="tab-button"
+        :class="{ active: activeTab === 'ars' }"
+        @click="activeTab = 'ars'"
+      >
+        🍊 AI ARS 상담
+      </button>
+      <button
+        type="button"
+        class="tab-button"
+        :class="{ active: activeTab === 'flywheel' }"
+        @click="activeTab = 'flywheel'"
+      >
+        📊 데이터 플라이휠
+      </button>
+    </nav>
 
-    <main class="layout">
-      <section class="call-screen">
-        <ChatLog :messages="messages" />
-        <MicButton @result="handleResult" @error="handleError" />
-      </section>
+    <template v-if="activeTab === 'ars'">
+      <CallHeader />
 
-      <StatsPanel :stats="stats" :log="statsLog" />
-    </main>
+      <main class="layout">
+        <section class="call-screen">
+          <ChatLog :messages="messages" />
+          <MicButton @result="handleResult" @error="handleError" />
+        </section>
+
+        <StatsPanel :stats="stats" :log="statsLog" />
+      </main>
+    </template>
+
+    <DashboardView v-else />
   </div>
 </template>
 
 <style scoped>
+.tab-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.tab-button {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+.tab-button:hover { background: var(--surface-alt); }
+.tab-button.active {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-color: transparent;
+}
+
 .layout {
   flex: 1;
   display: grid;
