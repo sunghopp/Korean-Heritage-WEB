@@ -1,9 +1,14 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
-import { fetchDatasetStats, fetchDatasetSamples, datasetAudioUrl } from "../services/dashboardApi";
+import { computed, onMounted, reactive, ref } from "vue";
+import {
+  fetchDatasetStats,
+  fetchDatasetSamples,
+  datasetAudioUrl,
+  updateDatasetSample,
+} from "../services/dashboardApi";
 import { playAudio } from "../services/audio";
 
-const stats = ref({ total: 0, auto_approved: 0, needs_monitoring: 0, needs_review: 0 });
+const stats = ref({ total: 0, auto_approved: 0, needs_monitoring: 0, needs_review: 0, reviewed: 0 });
 const samples = ref([]);
 const loading = ref(true);
 const errorMessage = ref("");
@@ -13,6 +18,7 @@ const TIER_LABELS = {
   auto_approved: "정확도 높음",
   needs_monitoring: "관찰 필요",
   needs_review: "리뷰 필요",
+  reviewed: "검수 완료",
 };
 
 const TIER_FILTERS = ["auto_approved", "needs_monitoring", "needs_review"];
@@ -36,8 +42,43 @@ function formatConfidence(confidence) {
 }
 
 function handlePlay(sample) {
-  const url = datasetAudioUrl(sample.review_status, sample.id);
+  const url = datasetAudioUrl(sample.id);
   playAudio(url);
+}
+
+const editingId = ref(null);
+const draft = reactive({ dialectForm: "", standardForm: "" });
+const saving = ref(false);
+const saveError = ref("");
+
+function startEdit(sample) {
+  editingId.value = sample.id;
+  draft.dialectForm = sample.dialect_form || sample.form || "";
+  draft.standardForm = sample.standard_form || "";
+  saveError.value = "";
+}
+
+function cancelEdit() {
+  editingId.value = null;
+  saveError.value = "";
+}
+
+async function saveEdit(sample) {
+  saving.value = true;
+  saveError.value = "";
+  try {
+    const updated = await updateDatasetSample(sample.review_status, sample.id, {
+      dialect_form: draft.dialectForm,
+      standard_form: draft.standardForm,
+    });
+    const idx = samples.value.findIndex((s) => s.id === sample.id);
+    if (idx !== -1) samples.value.splice(idx, 1, updated);
+    editingId.value = null;
+  } catch (error) {
+    saveError.value = error.message || "저장에 실패했습니다.";
+  } finally {
+    saving.value = false;
+  }
 }
 
 async function load() {
@@ -107,11 +148,12 @@ onMounted(load);
               <th>발화 제주어</th>
               <th>번역 표준어</th>
               <th>음성 재생</th>
+              <th>관리</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="filteredSamples.length === 0">
-              <td colspan="5" class="empty-row">
+              <td colspan="6" class="empty-row">
                 {{ activeFilter ? "해당 구분의 학습 데이터가 없습니다" : "아직 수집된 학습 데이터가 없습니다" }}
               </td>
             </tr>
@@ -122,11 +164,44 @@ onMounted(load);
                 </span>
               </td>
               <td class="mono">{{ formatConfidence(sample.confidence) }}</td>
-              <td>{{ sample.dialect_form || sample.form }}</td>
-              <td>{{ sample.standard_form }}</td>
-              <td>
-                <button class="play-button" type="button" @click="handlePlay(sample)">▶ 재생</button>
-              </td>
+              <template v-if="editingId === sample.id">
+                <td><input class="edit-input" v-model="draft.dialectForm" /></td>
+                <td><input class="edit-input" v-model="draft.standardForm" /></td>
+                <td>
+                  <button class="play-button" type="button" @click="handlePlay(sample)">▶ 재생</button>
+                </td>
+                <td>
+                  <div class="edit-actions">
+                    <button
+                      class="save-button"
+                      type="button"
+                      :disabled="saving"
+                      @click="saveEdit(sample)"
+                    >
+                      저장
+                    </button>
+                    <button
+                      class="cancel-button"
+                      type="button"
+                      :disabled="saving"
+                      @click="cancelEdit"
+                    >
+                      취소
+                    </button>
+                  </div>
+                  <p v-if="saveError" class="save-error">{{ saveError }}</p>
+                </td>
+              </template>
+              <template v-else>
+                <td>{{ sample.dialect_form || sample.form }}</td>
+                <td>{{ sample.standard_form }}</td>
+                <td>
+                  <button class="play-button" type="button" @click="handlePlay(sample)">▶ 재생</button>
+                </td>
+                <td>
+                  <button class="edit-button" type="button" @click="startEdit(sample)">편집</button>
+                </td>
+              </template>
             </tr>
           </tbody>
         </table>
@@ -218,6 +293,10 @@ onMounted(load);
   white-space: normal;
   min-width: 180px;
 }
+.dataset-table td:nth-child(6) {
+  white-space: normal;
+  min-width: 90px;
+}
 
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
@@ -262,16 +341,55 @@ onMounted(load);
 .tier-auto_approved { background: var(--accent-soft); color: var(--accent-strong); border-color: transparent; }
 .tier-needs_monitoring { background: var(--accent2-soft); color: var(--accent2); border-color: transparent; }
 .tier-needs_review { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+.tier-reviewed { background: var(--surface-alt); color: var(--accent-strong); border-color: var(--accent-strong); }
 
-.play-button {
+.play-button,
+.edit-button,
+.save-button,
+.cancel-button {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: var(--accent-strong);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 5px 10px;
   cursor: pointer;
 }
-.play-button:hover { background: var(--surface-alt); }
+.play-button,
+.edit-button { color: var(--accent-strong); }
+.play-button:hover,
+.edit-button:hover,
+.cancel-button:hover { background: var(--surface-alt); }
+
+.edit-input {
+  width: 100%;
+  min-width: 160px;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 6px;
+}
+.save-button {
+  color: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+.save-button:hover:not(:disabled) { background: var(--accent-soft); }
+.save-button:disabled,
+.cancel-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.cancel-button { color: var(--text-muted); }
+
+.save-error {
+  margin: 6px 0 0;
+  font-size: 0.72rem;
+  color: var(--danger);
+  white-space: normal;
+}
 </style>
