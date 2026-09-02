@@ -17,6 +17,27 @@ export async function fetchDatasetSamples(limit = 100) {
   return data.samples;
 }
 
-export function datasetAudioUrl(reviewStatus, id) {
-  return `${BASE_URL}/dataset/audio/${reviewStatus}/${id}`;
+export function datasetAudioUrl(id) {
+  return `${BASE_URL}/dataset/audio/${id}`;
+}
+
+export async function updateDatasetSample(tier, id, updates) {
+  const res = await fetch(`${BASE_URL}/dataset/samples/${tier}/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`레이블 저장 실패 (HTTP ${res.status})`);
+  }
+
+  if (!res.ok) {
+    throw new Error(data.detail || `레이블 저장 실패 (HTTP ${res.status})`);
+  }
+
+  return data;
 }
