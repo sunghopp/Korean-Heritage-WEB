@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { fetchDatasetStats, fetchDatasetSamples, datasetAudioUrl } from "../services/dashboardApi";
 import { playAudio } from "../services/audio";
 
@@ -7,6 +7,7 @@ const stats = ref({ total: 0, auto_approved: 0, needs_monitoring: 0, needs_revie
 const samples = ref([]);
 const loading = ref(true);
 const errorMessage = ref("");
+const activeFilter = ref(null);
 
 const TIER_LABELS = {
   auto_approved: "정확도 높음",
@@ -14,8 +15,19 @@ const TIER_LABELS = {
   needs_review: "리뷰 필요",
 };
 
+const TIER_FILTERS = ["auto_approved", "needs_monitoring", "needs_review"];
+
+const filteredSamples = computed(() => {
+  if (!activeFilter.value) return samples.value;
+  return samples.value.filter((sample) => sample.review_status === activeFilter.value);
+});
+
 function tierLabel(reviewStatus) {
   return TIER_LABELS[reviewStatus] || reviewStatus;
+}
+
+function toggleFilter(tier) {
+  activeFilter.value = activeFilter.value === tier ? null : tier;
 }
 
 function formatConfidence(confidence) {
@@ -72,37 +84,54 @@ onMounted(load);
     <p v-if="errorMessage" class="dashboard-error">{{ errorMessage }}</p>
     <p v-else-if="loading" class="dashboard-loading">불러오는 중...</p>
 
-    <div v-else class="table-wrap">
-      <table class="dataset-table">
-        <thead>
-          <tr>
-            <th>학습 데이터 구분</th>
-            <th>Confidence</th>
-            <th>발화 제주어</th>
-            <th>번역 표준어</th>
-            <th>음성 재생</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="samples.length === 0">
-            <td colspan="5" class="empty-row">아직 수집된 학습 데이터가 없습니다</td>
-          </tr>
-          <tr v-for="sample in samples" :key="sample.id">
-            <td>
-              <span class="tier-badge" :class="`tier-${sample.review_status}`">
-                {{ tierLabel(sample.review_status) }}
-              </span>
-            </td>
-            <td class="mono">{{ formatConfidence(sample.confidence) }}</td>
-            <td>{{ sample.dialect_form || sample.form }}</td>
-            <td>{{ sample.standard_form }}</td>
-            <td>
-              <button class="play-button" type="button" @click="handlePlay(sample)">▶ 재생</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <template v-else>
+      <div class="filter-bar">
+        <button
+          v-for="tier in TIER_FILTERS"
+          :key="tier"
+          type="button"
+          class="filter-button"
+          :class="{ active: activeFilter === tier, [`tier-${tier}`]: activeFilter === tier }"
+          @click="toggleFilter(tier)"
+        >
+          {{ tierLabel(tier) }} ({{ stats[tier] ?? 0 }})
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="dataset-table">
+          <thead>
+            <tr>
+              <th>학습 데이터 구분</th>
+              <th>Confidence</th>
+              <th>발화 제주어</th>
+              <th>번역 표준어</th>
+              <th>음성 재생</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="filteredSamples.length === 0">
+              <td colspan="5" class="empty-row">
+                {{ activeFilter ? "해당 구분의 학습 데이터가 없습니다" : "아직 수집된 학습 데이터가 없습니다" }}
+              </td>
+            </tr>
+            <tr v-for="sample in filteredSamples" :key="sample.id">
+              <td>
+                <span class="tier-badge" :class="`tier-${sample.review_status}`">
+                  {{ tierLabel(sample.review_status) }}
+                </span>
+              </td>
+              <td class="mono">{{ formatConfidence(sample.confidence) }}</td>
+              <td>{{ sample.dialect_form || sample.form }}</td>
+              <td>{{ sample.standard_form }}</td>
+              <td>
+                <button class="play-button" type="button" @click="handlePlay(sample)">▶ 재생</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
   </section>
 </template>
 
@@ -197,6 +226,30 @@ onMounted(load);
   color: var(--text-muted);
   padding: 24px;
 }
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.filter-button {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.filter-button:hover { background: var(--surface-alt); }
+.filter-button.active {
+  border-color: transparent;
+  font-weight: 700;
+}
+.filter-button.active.tier-auto_approved { background: var(--accent-soft); color: var(--accent-strong); }
+.filter-button.active.tier-needs_monitoring { background: var(--accent2-soft); color: var(--accent2); }
+.filter-button.active.tier-needs_review { background: var(--danger-soft); color: var(--danger); }
 
 .tier-badge {
   font-family: var(--font-mono);
