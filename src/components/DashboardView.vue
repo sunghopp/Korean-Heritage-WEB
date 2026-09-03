@@ -8,28 +8,33 @@ import {
 } from "../services/dashboardApi";
 import { playAudio } from "../services/audio";
 
-const stats = ref({ total: 0, auto_approved: 0, needs_monitoring: 0, needs_review: 0, reviewed: 0 });
+const stats = ref({ total: 0, tier1: 0, tier2: 0, tier3: 0 });
 const samples = ref([]);
 const loading = ref(true);
 const errorMessage = ref("");
 const activeFilter = ref(null);
 
-const TIER_LABELS = {
-  auto_approved: "정확도 높음",
-  needs_monitoring: "관찰 필요",
-  needs_review: "리뷰 필요",
-  reviewed: "검수 완료",
+const TIER_LABELS = { tier1: "Tier 1", tier2: "Tier 2", tier3: "Tier 3" };
+const REVIEW_STATUS_LABELS = {
+  unreviewed: "Unreviewed",
+  not_required: "Not Required",
+  human_verified: "Human Verified",
+  rejected: "Rejected",
 };
 
-const TIER_FILTERS = ["auto_approved", "needs_monitoring", "needs_review"];
+const TIER_FILTERS = ["tier1", "tier2", "tier3"];
 
 const filteredSamples = computed(() => {
   if (!activeFilter.value) return samples.value;
-  return samples.value.filter((sample) => sample.review_status === activeFilter.value);
+  return samples.value.filter((sample) => sample.tier === activeFilter.value);
 });
 
-function tierLabel(reviewStatus) {
-  return TIER_LABELS[reviewStatus] || reviewStatus;
+function tierLabel(tier) {
+  return TIER_LABELS[tier] || tier;
+}
+
+function reviewStatusLabel(reviewStatus) {
+  return REVIEW_STATUS_LABELS[reviewStatus] || reviewStatus;
 }
 
 function toggleFilter(tier) {
@@ -50,32 +55,59 @@ const editingId = ref(null);
 const draft = reactive({ dialectForm: "", standardForm: "" });
 const saving = ref(false);
 const saveError = ref("");
+const errorSampleId = ref(null);
 
 function startEdit(sample) {
   editingId.value = sample.id;
   draft.dialectForm = sample.dialect_form || sample.form || "";
   draft.standardForm = sample.standard_form || "";
   saveError.value = "";
+  errorSampleId.value = null;
 }
 
 function cancelEdit() {
   editingId.value = null;
   saveError.value = "";
+  errorSampleId.value = null;
 }
 
 async function saveEdit(sample) {
   saving.value = true;
   saveError.value = "";
   try {
-    const updated = await updateDatasetSample(sample.review_status, sample.id, {
+    const updated = await updateDatasetSample(sample.tier, sample.id, {
       dialect_form: draft.dialectForm,
       standard_form: draft.standardForm,
+      review_status: "human_verified",
     });
     const idx = samples.value.findIndex((s) => s.id === sample.id);
     if (idx !== -1) samples.value.splice(idx, 1, updated);
     editingId.value = null;
+    errorSampleId.value = null;
   } catch (error) {
     saveError.value = error.message || "저장에 실패했습니다.";
+    errorSampleId.value = sample.id;
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function reject(sample) {
+  if (!window.confirm("이 데이터를 Rejected로 표시할까요? 학습에 사용되지 않습니다.")) {
+    return;
+  }
+  saving.value = true;
+  saveError.value = "";
+  errorSampleId.value = null;
+  try {
+    const updated = await updateDatasetSample(sample.tier, sample.id, {
+      review_status: "rejected",
+    });
+    const idx = samples.value.findIndex((s) => s.id === sample.id);
+    if (idx !== -1) samples.value.splice(idx, 1, updated);
+  } catch (error) {
+    saveError.value = error.message || "처리에 실패했습니다.";
+    errorSampleId.value = sample.id;
   } finally {
     saving.value = false;
   }
@@ -109,16 +141,16 @@ onMounted(load);
         <p class="stat-label">총 학습 데이터 수</p>
       </div>
       <div class="stat-card">
-        <p class="stat-value">{{ stats.needs_review }}</p>
-        <p class="stat-label">리뷰가 필요한 학습 데이터 수</p>
+        <p class="stat-value">{{ stats.tier1 }}</p>
+        <p class="stat-label">Tier 1 데이터 수</p>
       </div>
       <div class="stat-card">
-        <p class="stat-value">{{ stats.needs_monitoring }}</p>
-        <p class="stat-label">관찰이 필요한 학습 데이터 수</p>
+        <p class="stat-value">{{ stats.tier2 }}</p>
+        <p class="stat-label">Tier 2 데이터 수</p>
       </div>
       <div class="stat-card">
-        <p class="stat-value">{{ stats.auto_approved }}</p>
-        <p class="stat-label">정확도 높은 학습 데이터 수</p>
+        <p class="stat-value">{{ stats.tier3 }}</p>
+        <p class="stat-label">Tier 3 데이터 수</p>
       </div>
     </div>
 
@@ -159,9 +191,14 @@ onMounted(load);
             </tr>
             <tr v-for="sample in filteredSamples" :key="sample.id">
               <td>
-                <span class="tier-badge" :class="`tier-${sample.review_status}`">
-                  {{ tierLabel(sample.review_status) }}
-                </span>
+                <div class="badge-stack">
+                  <span class="tier-badge" :class="`tier-${sample.tier}`">
+                    {{ tierLabel(sample.tier) }}
+                  </span>
+                  <span class="status-badge" :class="`status-${sample.review_status}`">
+                    {{ reviewStatusLabel(sample.review_status) }}
+                  </span>
+                </div>
               </td>
               <td class="mono">{{ formatConfidence(sample.confidence) }}</td>
               <template v-if="editingId === sample.id">
@@ -189,7 +226,7 @@ onMounted(load);
                       취소
                     </button>
                   </div>
-                  <p v-if="saveError" class="save-error">{{ saveError }}</p>
+                  <p v-if="saveError && errorSampleId === sample.id" class="save-error">{{ saveError }}</p>
                 </td>
               </template>
               <template v-else>
@@ -199,7 +236,19 @@ onMounted(load);
                   <button class="play-button" type="button" @click="handlePlay(sample)">▶ 재생</button>
                 </td>
                 <td>
-                  <button class="edit-button" type="button" @click="startEdit(sample)">편집</button>
+                  <div v-if="sample.review_status === 'unreviewed'" class="edit-actions">
+                    <button class="edit-button" type="button" @click="startEdit(sample)">편집</button>
+                    <button
+                      class="reject-button"
+                      type="button"
+                      :disabled="saving"
+                      @click="reject(sample)"
+                    >
+                      거부
+                    </button>
+                  </div>
+                  <span v-else class="no-action">–</span>
+                  <p v-if="saveError && errorSampleId === sample.id" class="save-error">{{ saveError }}</p>
                 </td>
               </template>
             </tr>
@@ -326,11 +375,19 @@ onMounted(load);
   border-color: transparent;
   font-weight: 700;
 }
-.filter-button.active.tier-auto_approved { background: var(--accent-soft); color: var(--accent-strong); }
-.filter-button.active.tier-needs_monitoring { background: var(--accent2-soft); color: var(--accent2); }
-.filter-button.active.tier-needs_review { background: var(--danger-soft); color: var(--danger); }
+.filter-button.active.tier-tier1 { background: var(--accent-soft); color: var(--accent-strong); }
+.filter-button.active.tier-tier2 { background: var(--accent2-soft); color: var(--accent2); }
+.filter-button.active.tier-tier3 { background: var(--danger-soft); color: var(--danger); }
 
-.tier-badge {
+.badge-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.tier-badge,
+.status-badge {
   font-family: var(--font-mono);
   font-size: 0.68rem;
   padding: 3px 8px;
@@ -338,15 +395,20 @@ onMounted(load);
   border: 1px solid var(--border);
   white-space: nowrap;
 }
-.tier-auto_approved { background: var(--accent-soft); color: var(--accent-strong); border-color: transparent; }
-.tier-needs_monitoring { background: var(--accent2-soft); color: var(--accent2); border-color: transparent; }
-.tier-needs_review { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
-.tier-reviewed { background: var(--surface-alt); color: var(--accent-strong); border-color: var(--accent-strong); }
+.tier-tier1 { background: var(--accent-soft); color: var(--accent-strong); border-color: transparent; }
+.tier-tier2 { background: var(--accent2-soft); color: var(--accent2); border-color: transparent; }
+.tier-tier3 { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+
+.status-unreviewed { background: var(--surface-alt); color: var(--text-muted); }
+.status-not_required { background: var(--surface-alt); color: var(--text-muted); }
+.status-human_verified { background: var(--accent-soft); color: var(--accent-strong); border-color: transparent; }
+.status-rejected { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
 
 .play-button,
 .edit-button,
 .save-button,
-.cancel-button {
+.cancel-button,
+.reject-button {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   background: transparent;
@@ -360,6 +422,12 @@ onMounted(load);
 .play-button:hover,
 .edit-button:hover,
 .cancel-button:hover { background: var(--surface-alt); }
+
+.reject-button { color: var(--danger); border-color: var(--danger); }
+.reject-button:hover:not(:disabled) { background: var(--danger-soft); }
+.reject-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.no-action { color: var(--text-muted); }
 
 .edit-input {
   width: 100%;
