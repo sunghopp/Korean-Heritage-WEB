@@ -8,11 +8,19 @@ import {
 } from "../services/dashboardApi";
 import { playAudio } from "../services/audio";
 
-const stats = ref({ total: 0, tier1: 0, tier2: 0, tier3: 0 });
+const stats = ref({
+  total: 0,
+  tier1: 0,
+  tier2: 0,
+  tier3: 0,
+  unreviewed: 0,
+  not_required: 0,
+  human_verified: 0,
+  rejected: 0,
+});
 const samples = ref([]);
 const loading = ref(true);
 const errorMessage = ref("");
-const activeFilter = ref(null);
 
 const TIER_LABELS = { tier1: "Tier 1", tier2: "Tier 2", tier3: "Tier 3" };
 const REVIEW_STATUS_LABELS = {
@@ -23,10 +31,19 @@ const REVIEW_STATUS_LABELS = {
 };
 
 const TIER_FILTERS = ["tier1", "tier2", "tier3"];
+const REVIEW_STATUS_FILTERS = ["unreviewed", "not_required", "human_verified", "rejected"];
+
+const statsView = ref("tier"); // "tier" | "status" — which breakdown the panels show
+
+const activeTierFilter = ref(null);
+const activeStatusFilter = ref(null);
 
 const filteredSamples = computed(() => {
-  if (!activeFilter.value) return samples.value;
-  return samples.value.filter((sample) => sample.tier === activeFilter.value);
+  return samples.value.filter((sample) => {
+    if (activeTierFilter.value && sample.tier !== activeTierFilter.value) return false;
+    if (activeStatusFilter.value && sample.review_status !== activeStatusFilter.value) return false;
+    return true;
+  });
 });
 
 function tierLabel(tier) {
@@ -37,8 +54,12 @@ function reviewStatusLabel(reviewStatus) {
   return REVIEW_STATUS_LABELS[reviewStatus] || reviewStatus;
 }
 
-function toggleFilter(tier) {
-  activeFilter.value = activeFilter.value === tier ? null : tier;
+function toggleTierFilter(tier) {
+  activeTierFilter.value = activeTierFilter.value === tier ? null : tier;
+}
+
+function toggleStatusFilter(status) {
+  activeStatusFilter.value = activeStatusFilter.value === status ? null : status;
 }
 
 function formatConfidence(confidence) {
@@ -135,23 +156,42 @@ onMounted(load);
 
 <template>
   <section class="dashboard">
+    <div class="stats-toggle">
+      <button
+        type="button"
+        class="toggle-button"
+        :class="{ active: statsView === 'tier' }"
+        @click="statsView = 'tier'"
+      >
+        Tier
+      </button>
+      <button
+        type="button"
+        class="toggle-button"
+        :class="{ active: statsView === 'status' }"
+        @click="statsView = 'status'"
+      >
+        Review Status
+      </button>
+    </div>
+
     <div class="stats-grid">
       <div class="stat-card">
         <p class="stat-value">{{ stats.total }}</p>
         <p class="stat-label">총 학습 데이터 수</p>
       </div>
-      <div class="stat-card">
-        <p class="stat-value">{{ stats.tier1 }}</p>
-        <p class="stat-label">Tier 1 데이터 수</p>
-      </div>
-      <div class="stat-card">
-        <p class="stat-value">{{ stats.tier2 }}</p>
-        <p class="stat-label">Tier 2 데이터 수</p>
-      </div>
-      <div class="stat-card">
-        <p class="stat-value">{{ stats.tier3 }}</p>
-        <p class="stat-label">Tier 3 데이터 수</p>
-      </div>
+      <template v-if="statsView === 'tier'">
+        <div v-for="tier in TIER_FILTERS" :key="tier" class="stat-card">
+          <p class="stat-value">{{ stats[tier] ?? 0 }}</p>
+          <p class="stat-label">{{ tierLabel(tier) }}</p>
+        </div>
+      </template>
+      <template v-else>
+        <div v-for="status in REVIEW_STATUS_FILTERS" :key="status" class="stat-card">
+          <p class="stat-value">{{ stats[status] ?? 0 }}</p>
+          <p class="stat-label">{{ reviewStatusLabel(status) }}</p>
+        </div>
+      </template>
     </div>
 
     <p v-if="errorMessage" class="dashboard-error">{{ errorMessage }}</p>
@@ -164,10 +204,22 @@ onMounted(load);
           :key="tier"
           type="button"
           class="filter-button"
-          :class="{ active: activeFilter === tier, [`tier-${tier}`]: activeFilter === tier }"
-          @click="toggleFilter(tier)"
+          :class="{ active: activeTierFilter === tier, [`tier-${tier}`]: activeTierFilter === tier }"
+          @click="toggleTierFilter(tier)"
         >
           {{ tierLabel(tier) }} ({{ stats[tier] ?? 0 }})
+        </button>
+      </div>
+      <div class="filter-bar">
+        <button
+          v-for="status in REVIEW_STATUS_FILTERS"
+          :key="status"
+          type="button"
+          class="filter-button"
+          :class="{ active: activeStatusFilter === status, [`status-${status}`]: activeStatusFilter === status }"
+          @click="toggleStatusFilter(status)"
+        >
+          {{ reviewStatusLabel(status) }} ({{ stats[status] ?? 0 }})
         </button>
       </div>
 
@@ -186,7 +238,7 @@ onMounted(load);
           <tbody>
             <tr v-if="filteredSamples.length === 0">
               <td colspan="6" class="empty-row">
-                {{ activeFilter ? "해당 구분의 학습 데이터가 없습니다" : "아직 수집된 학습 데이터가 없습니다" }}
+                {{ activeTierFilter || activeStatusFilter ? "해당 조건의 학습 데이터가 없습니다" : "아직 수집된 학습 데이터가 없습니다" }}
               </td>
             </tr>
             <tr v-for="sample in filteredSamples" :key="sample.id">
@@ -272,11 +324,8 @@ onMounted(load);
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
-}
-@media (max-width: 720px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; }
 }
 
 .stat-card {
@@ -378,6 +427,32 @@ onMounted(load);
 .filter-button.active.tier-tier1 { background: var(--accent-soft); color: var(--accent-strong); }
 .filter-button.active.tier-tier2 { background: var(--accent2-soft); color: var(--accent2); }
 .filter-button.active.tier-tier3 { background: var(--danger-soft); color: var(--danger); }
+.filter-button.active.status-unreviewed { background: var(--surface-alt); color: var(--text); }
+.filter-button.active.status-not_required { background: var(--surface-alt); color: var(--text); }
+.filter-button.active.status-human_verified { background: var(--accent-soft); color: var(--accent-strong); }
+.filter-button.active.status-rejected { background: var(--danger-soft); color: var(--danger); }
+
+.stats-toggle {
+  display: flex;
+  gap: 8px;
+}
+.toggle-button {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.toggle-button:hover { background: var(--surface-alt); }
+.toggle-button.active {
+  border-color: transparent;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
 
 .badge-stack {
   display: flex;
