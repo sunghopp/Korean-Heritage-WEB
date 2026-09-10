@@ -21,8 +21,8 @@ export function datasetAudioUrl(id) {
   return `${BASE_URL}/dataset/audio/${id}`;
 }
 
-export async function updateDatasetSample(tier, id, updates) {
-  const res = await fetch(`${BASE_URL}/dataset/samples/${tier}/${id}`, {
+export async function updateDatasetSample(id, updates) {
+  const res = await fetch(`${BASE_URL}/dataset/samples/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(updates),
