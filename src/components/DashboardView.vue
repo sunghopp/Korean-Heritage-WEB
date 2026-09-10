@@ -10,52 +10,42 @@ import { playAudio } from "../services/audio";
 
 const stats = ref({
   total: 0,
-  tier1: 0,
-  tier2: 0,
-  tier3: 0,
-  unreviewed: 0,
-  not_required: 0,
-  human_verified: 0,
+  pending: 0,
+  approved: 0,
   rejected: 0,
 });
 const samples = ref([]);
 const loading = ref(true);
 const errorMessage = ref("");
 
-const TIER_LABELS = { tier1: "Tier 1", tier2: "Tier 2", tier3: "Tier 3" };
-const REVIEW_STATUS_LABELS = {
-  unreviewed: "Unreviewed",
-  not_required: "Not Required",
-  human_verified: "Human Verified",
+const STATUS_LABELS = {
+  pending: "Pending",
+  approved: "Approved",
   rejected: "Rejected",
 };
 
-const TIER_FILTERS = ["tier1", "tier2", "tier3"];
-const REVIEW_STATUS_FILTERS = ["unreviewed", "not_required", "human_verified", "rejected"];
+const STATUS_FILTERS = ["pending", "approved", "rejected"];
 
-const statsView = ref("tier"); // "tier" | "status" — which breakdown the panels show
+const REVIEWER_LABELS = {
+  system: "System",
+  human: "Human",
+};
 
-const activeTierFilter = ref(null);
 const activeStatusFilter = ref(null);
 
 const filteredSamples = computed(() => {
   return samples.value.filter((sample) => {
-    if (activeTierFilter.value && sample.tier !== activeTierFilter.value) return false;
-    if (activeStatusFilter.value && sample.review_status !== activeStatusFilter.value) return false;
+    if (activeStatusFilter.value && sample.status !== activeStatusFilter.value) return false;
     return true;
   });
 });
 
-function tierLabel(tier) {
-  return TIER_LABELS[tier] || tier;
+function statusLabel(status) {
+  return STATUS_LABELS[status] || status;
 }
 
-function reviewStatusLabel(reviewStatus) {
-  return REVIEW_STATUS_LABELS[reviewStatus] || reviewStatus;
-}
-
-function toggleTierFilter(tier) {
-  activeTierFilter.value = activeTierFilter.value === tier ? null : tier;
+function reviewerLabel(reviewedBy) {
+  return REVIEWER_LABELS[reviewedBy] || reviewedBy;
 }
 
 function toggleStatusFilter(status) {
@@ -96,10 +86,10 @@ async function saveEdit(sample) {
   saving.value = true;
   saveError.value = "";
   try {
-    const updated = await updateDatasetSample(sample.tier, sample.id, {
+    const updated = await updateDatasetSample(sample.id, {
       dialect_form: draft.dialectForm,
       standard_form: draft.standardForm,
-      review_status: "human_verified",
+      status: "approved",
     });
     const idx = samples.value.findIndex((s) => s.id === sample.id);
     if (idx !== -1) samples.value.splice(idx, 1, updated);
@@ -121,8 +111,8 @@ async function reject(sample) {
   saveError.value = "";
   errorSampleId.value = null;
   try {
-    const updated = await updateDatasetSample(sample.tier, sample.id, {
-      review_status: "rejected",
+    const updated = await updateDatasetSample(sample.id, {
+      status: "rejected",
     });
     const idx = samples.value.findIndex((s) => s.id === sample.id);
     if (idx !== -1) samples.value.splice(idx, 1, updated);
@@ -156,42 +146,15 @@ onMounted(load);
 
 <template>
   <section class="dashboard">
-    <div class="stats-toggle">
-      <button
-        type="button"
-        class="toggle-button"
-        :class="{ active: statsView === 'tier' }"
-        @click="statsView = 'tier'"
-      >
-        Tier
-      </button>
-      <button
-        type="button"
-        class="toggle-button"
-        :class="{ active: statsView === 'status' }"
-        @click="statsView = 'status'"
-      >
-        Review Status
-      </button>
-    </div>
-
     <div class="stats-grid">
       <div class="stat-card">
         <p class="stat-value">{{ stats.total }}</p>
         <p class="stat-label">총 학습 데이터 수</p>
       </div>
-      <template v-if="statsView === 'tier'">
-        <div v-for="tier in TIER_FILTERS" :key="tier" class="stat-card">
-          <p class="stat-value">{{ stats[tier] ?? 0 }}</p>
-          <p class="stat-label">{{ tierLabel(tier) }}</p>
-        </div>
-      </template>
-      <template v-else>
-        <div v-for="status in REVIEW_STATUS_FILTERS" :key="status" class="stat-card">
-          <p class="stat-value">{{ stats[status] ?? 0 }}</p>
-          <p class="stat-label">{{ reviewStatusLabel(status) }}</p>
-        </div>
-      </template>
+      <div v-for="status in STATUS_FILTERS" :key="status" class="stat-card">
+        <p class="stat-value">{{ stats[status] ?? 0 }}</p>
+        <p class="stat-label">{{ statusLabel(status) }}</p>
+      </div>
     </div>
 
     <p v-if="errorMessage" class="dashboard-error">{{ errorMessage }}</p>
@@ -200,26 +163,14 @@ onMounted(load);
     <template v-else>
       <div class="filter-bar">
         <button
-          v-for="tier in TIER_FILTERS"
-          :key="tier"
-          type="button"
-          class="filter-button"
-          :class="{ active: activeTierFilter === tier, [`tier-${tier}`]: activeTierFilter === tier }"
-          @click="toggleTierFilter(tier)"
-        >
-          {{ tierLabel(tier) }} ({{ stats[tier] ?? 0 }})
-        </button>
-      </div>
-      <div class="filter-bar">
-        <button
-          v-for="status in REVIEW_STATUS_FILTERS"
+          v-for="status in STATUS_FILTERS"
           :key="status"
           type="button"
           class="filter-button"
           :class="{ active: activeStatusFilter === status, [`status-${status}`]: activeStatusFilter === status }"
           @click="toggleStatusFilter(status)"
         >
-          {{ reviewStatusLabel(status) }} ({{ stats[status] ?? 0 }})
+          {{ statusLabel(status) }} ({{ stats[status] ?? 0 }})
         </button>
       </div>
 
@@ -238,17 +189,17 @@ onMounted(load);
           <tbody>
             <tr v-if="filteredSamples.length === 0">
               <td colspan="6" class="empty-row">
-                {{ activeTierFilter || activeStatusFilter ? "해당 조건의 학습 데이터가 없습니다" : "아직 수집된 학습 데이터가 없습니다" }}
+                {{ activeStatusFilter ? "해당 조건의 학습 데이터가 없습니다" : "아직 수집된 학습 데이터가 없습니다" }}
               </td>
             </tr>
             <tr v-for="sample in filteredSamples" :key="sample.id">
               <td>
-                <div class="badge-stack">
-                  <span class="tier-badge" :class="`tier-${sample.tier}`">
-                    {{ tierLabel(sample.tier) }}
+                <div class="badge-row">
+                  <span class="status-badge" :class="`status-${sample.status}`">
+                    {{ statusLabel(sample.status) }}
                   </span>
-                  <span class="status-badge" :class="`status-${sample.review_status}`">
-                    {{ reviewStatusLabel(sample.review_status) }}
+                  <span v-if="sample.reviewed_by" class="reviewer-badge" :class="`reviewer-${sample.reviewed_by}`">
+                    {{ reviewerLabel(sample.reviewed_by) }}
                   </span>
                 </div>
               </td>
@@ -288,7 +239,7 @@ onMounted(load);
                   <button class="play-button" type="button" @click="handlePlay(sample)">▶ 재생</button>
                 </td>
                 <td>
-                  <div v-if="sample.review_status === 'unreviewed'" class="edit-actions">
+                  <div v-if="sample.status === 'pending'" class="edit-actions">
                     <button class="edit-button" type="button" @click="startEdit(sample)">편집</button>
                     <button
                       class="reject-button"
@@ -424,45 +375,18 @@ onMounted(load);
   border-color: transparent;
   font-weight: 700;
 }
-.filter-button.active.tier-tier1 { background: var(--accent-soft); color: var(--accent-strong); }
-.filter-button.active.tier-tier2 { background: var(--accent2-soft); color: var(--accent2); }
-.filter-button.active.tier-tier3 { background: var(--danger-soft); color: var(--danger); }
-.filter-button.active.status-unreviewed { background: var(--surface-alt); color: var(--text); }
-.filter-button.active.status-not_required { background: var(--surface-alt); color: var(--text); }
-.filter-button.active.status-human_verified { background: var(--accent-soft); color: var(--accent-strong); }
+.filter-button.active.status-pending { background: var(--surface-alt); color: var(--text); }
+.filter-button.active.status-approved { background: var(--accent-soft); color: var(--accent-strong); }
 .filter-button.active.status-rejected { background: var(--danger-soft); color: var(--danger); }
 
-.stats-toggle {
+.badge-row {
   display: flex;
-  gap: 8px;
-}
-.toggle-button {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 5px 12px;
-  cursor: pointer;
-}
-.toggle-button:hover { background: var(--surface-alt); }
-.toggle-button.active {
-  border-color: transparent;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-weight: 700;
-}
-
-.badge-stack {
-  display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 4px;
-  align-items: flex-start;
 }
 
-.tier-badge,
-.status-badge {
+.status-badge,
+.reviewer-badge {
   font-family: var(--font-mono);
   font-size: 0.68rem;
   padding: 3px 8px;
@@ -470,14 +394,18 @@ onMounted(load);
   border: 1px solid var(--border);
   white-space: nowrap;
 }
-.tier-tier1 { background: var(--accent-soft); color: var(--accent-strong); border-color: transparent; }
-.tier-tier2 { background: var(--accent2-soft); color: var(--accent2); border-color: transparent; }
-.tier-tier3 { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
 
-.status-unreviewed { background: var(--surface-alt); color: var(--text-muted); }
-.status-not_required { background: var(--surface-alt); color: var(--text-muted); }
-.status-human_verified { background: var(--accent-soft); color: var(--accent-strong); border-color: transparent; }
+.status-pending { background: var(--surface-alt); color: var(--text-muted); }
+.status-approved { background: var(--accent-soft); color: var(--accent-strong); border-color: transparent; }
 .status-rejected { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+
+.reviewer-badge {
+  font-size: 0.62rem;
+  padding: 2px 6px;
+  color: var(--text-muted);
+}
+.reviewer-system { border-style: dashed; }
+.reviewer-human { border-style: solid; }
 
 .play-button,
 .edit-button,
