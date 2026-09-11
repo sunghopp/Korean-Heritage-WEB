@@ -18,6 +18,10 @@ const samples = ref([]);
 const loading = ref(true);
 const errorMessage = ref("");
 
+const PAGE_SIZE = 20;
+const page = ref(0);
+const total = ref(0);
+
 const STATUS_LABELS = {
   pending: "Pending",
   approved: "Approved",
@@ -39,6 +43,8 @@ const filteredSamples = computed(() => {
     return true;
   });
 });
+
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)));
 
 function statusLabel(status) {
   return STATUS_LABELS[status] || status;
@@ -144,21 +150,44 @@ async function reject(sample) {
   }
 }
 
+async function loadSamples() {
+  const data = await fetchDatasetSamples({ limit: PAGE_SIZE, offset: page.value * PAGE_SIZE });
+  samples.value = data.samples;
+  total.value = data.total;
+}
+
 async function load() {
   loading.value = true;
   errorMessage.value = "";
   try {
-    const [statsData, samplesData] = await Promise.all([
-      fetchDatasetStats(),
-      fetchDatasetSamples(),
-    ]);
+    const [statsData] = await Promise.all([fetchDatasetStats(), loadSamples()]);
     stats.value = statsData;
-    samples.value = samplesData;
   } catch (error) {
     errorMessage.value = error.message || "데이터를 불러오지 못했습니다.";
   } finally {
     loading.value = false;
   }
+}
+
+async function goToPage(newPage) {
+  cancelEdit();
+  page.value = newPage;
+  loading.value = true;
+  try {
+    await loadSamples();
+  } catch (error) {
+    errorMessage.value = error.message || "데이터를 불러오지 못했습니다.";
+  } finally {
+    loading.value = false;
+  }
+}
+
+function prevPage() {
+  if (page.value > 0) goToPage(page.value - 1);
+}
+
+function nextPage() {
+  if ((page.value + 1) * PAGE_SIZE < total.value) goToPage(page.value + 1);
 }
 
 onMounted(load);
@@ -269,6 +298,12 @@ onMounted(load);
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="pager">
+        <button class="pager-button" type="button" :disabled="page === 0" @click="prevPage">이전</button>
+        <span class="pager-label">페이지 {{ page + 1 }} / {{ totalPages }}</span>
+        <button class="pager-button" type="button" :disabled="(page + 1) * PAGE_SIZE >= total" @click="nextPage">다음</button>
       </div>
     </template>
   </section>
@@ -488,5 +523,30 @@ onMounted(load);
   font-size: 0.72rem;
   color: var(--danger);
   white-space: normal;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.pager-button {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.pager-button:hover:not(:disabled) { background: var(--surface-alt); }
+.pager-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.pager-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 </style>

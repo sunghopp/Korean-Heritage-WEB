@@ -8,13 +8,12 @@ export async function fetchDatasetStats() {
   return res.json();
 }
 
-export async function fetchDatasetSamples(limit = 100) {
-  const res = await fetch(`${BASE_URL}/dataset/samples?limit=${limit}`);
+export async function fetchDatasetSamples({ limit = 20, offset = 0 } = {}) {
+  const res = await fetch(`${BASE_URL}/dataset/samples?limit=${limit}&offset=${offset}`);
   if (!res.ok) {
     throw new Error(`데이터 목록 조회 실패 (HTTP ${res.status})`);
   }
-  const data = await res.json();
-  return data.samples;
+  return res.json();
 }
 
 export function datasetAudioUrl(id) {
