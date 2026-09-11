@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  REGION: asia-northeast3
+  REGION: asia-southeast1
   SERVICE_NAME: jeju-ai-console
   REPOSITORY_ID: jeju-ai-console
 
