@@ -62,39 +62,57 @@ function handlePlay(sample) {
   playAudio(url);
 }
 
-const editingId = ref(null);
-const draft = reactive({ dialectForm: "", standardForm: "" });
+// 상단 통계 패널을 서버 재조회 없이 즉시 갱신 — 이전 상태 카운트를 1 감소, 새 상태를 1 증가.
+function shiftStats(oldStatus, newStatus) {
+  if (oldStatus === newStatus) return;
+  if (typeof stats.value[oldStatus] === "number") {
+    stats.value[oldStatus] = Math.max(0, stats.value[oldStatus] - 1);
+  }
+  if (typeof stats.value[newStatus] === "number") {
+    stats.value[newStatus] += 1;
+  }
+}
+
+const editingCell = reactive({ id: null, field: null });
+const draftValue = ref("");
 const saving = ref(false);
 const saveError = ref("");
 const errorSampleId = ref(null);
 
-function startEdit(sample) {
-  editingId.value = sample.id;
-  draft.dialectForm = sample.dialect_form || sample.form || "";
-  draft.standardForm = sample.standard_form || "";
+function isEditing(sample, field) {
+  return editingCell.id === sample.id && editingCell.field === field;
+}
+
+function startEdit(sample, field) {
+  editingCell.id = sample.id;
+  editingCell.field = field;
+  draftValue.value = field === "dialect_form" ? sample.dialect_form || sample.form || "" : sample.standard_form || "";
   saveError.value = "";
   errorSampleId.value = null;
 }
 
 function cancelEdit() {
-  editingId.value = null;
+  editingCell.id = null;
+  editingCell.field = null;
+  draftValue.value = "";
   saveError.value = "";
   errorSampleId.value = null;
 }
 
-async function saveEdit(sample) {
+async function saveField(sample) {
+  const field = editingCell.field;
   saving.value = true;
   saveError.value = "";
   try {
     const updated = await updateDatasetSample(sample.id, {
-      dialect_form: draft.dialectForm,
-      standard_form: draft.standardForm,
+      [field]: draftValue.value,
       status: "approved",
     });
+    const oldStatus = sample.status;
     const idx = samples.value.findIndex((s) => s.id === sample.id);
     if (idx !== -1) samples.value.splice(idx, 1, updated);
-    editingId.value = null;
-    errorSampleId.value = null;
+    shiftStats(oldStatus, updated.status);
+    cancelEdit();
   } catch (error) {
     saveError.value = error.message || "저장에 실패했습니다.";
     errorSampleId.value = sample.id;
@@ -111,11 +129,13 @@ async function reject(sample) {
   saveError.value = "";
   errorSampleId.value = null;
   try {
+    const oldStatus = sample.status;
     const updated = await updateDatasetSample(sample.id, {
       status: "rejected",
     });
     const idx = samples.value.findIndex((s) => s.id === sample.id);
     if (idx !== -1) samples.value.splice(idx, 1, updated);
+    shiftStats(oldStatus, updated.status);
   } catch (error) {
     saveError.value = error.message || "처리에 실패했습니다.";
     errorSampleId.value = sample.id;
@@ -179,7 +199,8 @@ onMounted(load);
           <thead>
             <tr>
               <th>학습 데이터 구분</th>
-              <th>Confidence</th>
+              <th>STT Confidence</th>
+              <th>번역 Confidence</th>
               <th>발화 제주어</th>
               <th>번역 표준어</th>
               <th>음성 재생</th>
@@ -188,7 +209,7 @@ onMounted(load);
           </thead>
           <tbody>
             <tr v-if="filteredSamples.length === 0">
-              <td colspan="6" class="empty-row">
+              <td colspan="7" class="empty-row">
                 {{ activeStatusFilter ? "해당 조건의 학습 데이터가 없습니다" : "아직 수집된 학습 데이터가 없습니다" }}
               </td>
             </tr>
@@ -203,57 +224,48 @@ onMounted(load);
                   </span>
                 </div>
               </td>
-              <td class="mono">{{ formatConfidence(sample.confidence) }}</td>
-              <template v-if="editingId === sample.id">
-                <td><input class="edit-input" v-model="draft.dialectForm" /></td>
-                <td><input class="edit-input" v-model="draft.standardForm" /></td>
-                <td>
-                  <button class="play-button" type="button" @click="handlePlay(sample)">▶ 재생</button>
-                </td>
-                <td>
+              <td class="mono">{{ formatConfidence(sample.stt_confidence) }}</td>
+              <td class="mono">{{ formatConfidence(sample.translation_confidence) }}</td>
+              <td>
+                <div v-if="isEditing(sample, 'dialect_form')" class="field-edit">
+                  <input class="edit-input" v-model="draftValue" />
                   <div class="edit-actions">
-                    <button
-                      class="save-button"
-                      type="button"
-                      :disabled="saving"
-                      @click="saveEdit(sample)"
-                    >
-                      저장
-                    </button>
-                    <button
-                      class="cancel-button"
-                      type="button"
-                      :disabled="saving"
-                      @click="cancelEdit"
-                    >
-                      취소
-                    </button>
+                    <button class="save-button" type="button" :disabled="saving" @click="saveField(sample)">저장</button>
+                    <button class="cancel-button" type="button" :disabled="saving" @click="cancelEdit">취소</button>
                   </div>
-                  <p v-if="saveError && errorSampleId === sample.id" class="save-error">{{ saveError }}</p>
-                </td>
-              </template>
-              <template v-else>
-                <td>{{ sample.dialect_form || sample.form }}</td>
-                <td>{{ sample.standard_form }}</td>
-                <td>
-                  <button class="play-button" type="button" @click="handlePlay(sample)">▶ 재생</button>
-                </td>
-                <td>
-                  <div v-if="sample.status === 'pending'" class="edit-actions">
-                    <button class="edit-button" type="button" @click="startEdit(sample)">편집</button>
-                    <button
-                      class="reject-button"
-                      type="button"
-                      :disabled="saving"
-                      @click="reject(sample)"
-                    >
-                      거부
-                    </button>
+                </div>
+                <div v-else class="field-view">
+                  <span>{{ sample.dialect_form || sample.form }}</span>
+                  <button class="field-edit-button" type="button" @click="startEdit(sample, 'dialect_form')">편집</button>
+                </div>
+              </td>
+              <td>
+                <div v-if="isEditing(sample, 'standard_form')" class="field-edit">
+                  <input class="edit-input" v-model="draftValue" />
+                  <div class="edit-actions">
+                    <button class="save-button" type="button" :disabled="saving" @click="saveField(sample)">저장</button>
+                    <button class="cancel-button" type="button" :disabled="saving" @click="cancelEdit">취소</button>
                   </div>
-                  <span v-else class="no-action">–</span>
-                  <p v-if="saveError && errorSampleId === sample.id" class="save-error">{{ saveError }}</p>
-                </td>
-              </template>
+                </div>
+                <div v-else class="field-view">
+                  <span>{{ sample.standard_form }}</span>
+                  <button class="field-edit-button" type="button" @click="startEdit(sample, 'standard_form')">편집</button>
+                </div>
+              </td>
+              <td>
+                <button class="play-button" type="button" @click="handlePlay(sample)">▶ 재생</button>
+              </td>
+              <td>
+                <button
+                  class="reject-button"
+                  type="button"
+                  :disabled="saving"
+                  @click="reject(sample)"
+                >
+                  거부
+                </button>
+                <p v-if="saveError && errorSampleId === sample.id" class="save-error">{{ saveError }}</p>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -337,12 +349,12 @@ onMounted(load);
 .dataset-table tbody tr:last-child td { border-bottom: none; }
 .dataset-table tbody tr:hover { background: var(--surface-alt); }
 
-.dataset-table td:nth-child(3),
-.dataset-table td:nth-child(4) {
+.dataset-table td:nth-child(4),
+.dataset-table td:nth-child(5) {
   white-space: normal;
   min-width: 180px;
 }
-.dataset-table td:nth-child(6) {
+.dataset-table td:nth-child(7) {
   white-space: normal;
   min-width: 90px;
 }
@@ -408,7 +420,7 @@ onMounted(load);
 .reviewer-human { border-style: solid; }
 
 .play-button,
-.edit-button,
+.field-edit-button,
 .save-button,
 .cancel-button,
 .reject-button {
@@ -421,16 +433,30 @@ onMounted(load);
   cursor: pointer;
 }
 .play-button,
-.edit-button { color: var(--accent-strong); }
+.field-edit-button { color: var(--accent-strong); }
 .play-button:hover,
-.edit-button:hover,
+.field-edit-button:hover,
 .cancel-button:hover { background: var(--surface-alt); }
 
 .reject-button { color: var(--danger); border-color: var(--danger); }
 .reject-button:hover:not(:disabled) { background: var(--danger-soft); }
 .reject-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.no-action { color: var(--text-muted); }
+.field-view {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.field-edit-button {
+  padding: 3px 8px;
+  font-size: 0.68rem;
+}
+
+.field-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
 .edit-input {
   width: 100%;
