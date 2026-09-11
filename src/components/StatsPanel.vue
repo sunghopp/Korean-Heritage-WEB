@@ -13,7 +13,6 @@ const avgTime = computed(() => (props.stats.turns ? (props.stats.totalTime / pro
   <aside class="stats-panel">
     <div class="stats-header">
       <h3>실시간 데이터베이스</h3>
-      <span class="badge">MOCK · 백엔드 연동 전</span>
     </div>
 
     <div class="stats-grid">
@@ -45,11 +44,6 @@ const avgTime = computed(() => (props.stats.turns ? (props.stats.totalTime / pro
         </li>
       </ul>
     </div>
-
-    <p class="stats-footnote">
-      지금은 응답을 받은 뒤 브라우저에서 집계한 값입니다. 백엔드 DB 스키마가 정해지면
-      이 패널을 실시간 조회 API로 교체합니다.
-    </p>
   </aside>
 </template>
 
@@ -68,17 +62,6 @@ const avgTime = computed(() => (props.stats.turns ? (props.stats.totalTime / pro
   gap: 8px;
 }
 .stats-header h3 { margin: 0; font-size: 0.95rem; }
-.badge {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.02em;
-  padding: 4px 8px;
-  border-radius: 5px;
-  background: var(--surface-alt);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  white-space: nowrap;
-}
 
 .stats-grid {
   display: grid;
@@ -131,12 +114,5 @@ const avgTime = computed(() => (props.stats.turns ? (props.stats.totalTime / pro
   color: var(--text);
   display: block;
   margin-top: 2px;
-}
-
-.stats-footnote {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-  margin: 0;
 }
 </style>
