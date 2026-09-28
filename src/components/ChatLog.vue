@@ -26,7 +26,9 @@ watch(
 <style scoped>
 .chat-log {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -34,4 +36,11 @@ watch(
   background: var(--surface-alt);
   min-height: 320px;
 }
+.chat-log::-webkit-scrollbar { width: 10px; }
+.chat-log::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+  border: 3px solid var(--surface-alt);
+}
+.chat-log::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 </style>

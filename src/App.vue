@@ -15,6 +15,11 @@ import {
 const activeTab = ref("ars");
 const assistantSpeaking = ref(false);
 const HISTORY_KEY = "jeju-ars-conversation-v1";
+const GREETING_MESSAGE = {
+  type: "ai",
+  label: "AI 인사",
+  text: "안녕하우꽈, 제주120 만덕콜센터 AI 상담원이우다. 행정이나 생활 민원, 교통·관광, 복지 같은 궁금한 거 편하게 말씀해줍서.",
+};
 
 function loadConversationHistory() {
   try {
@@ -53,11 +58,7 @@ function toChatMessages(turn) {
 const conversationHistory = ref(loadConversationHistory());
 
 const messages = reactive([
-  {
-    type: "ai",
-    label: "AI 인사",
-    text: "안녕하우꽈, 제주120 만덕콜센터 AI 상담원이우다. 행정이나 생활 민원, 교통·관광, 복지 같은 궁금한 거 편하게 말씀해줍서.",
-  },
+  { ...GREETING_MESSAGE },
   ...conversationHistory.value.flatMap(toChatMessages),
 ]);
 
@@ -141,6 +142,19 @@ function handleError(message) {
   messages.push({ type: "error", text: message });
 }
 
+function resetConversation() {
+  stopAudio();
+  assistantSpeaking.value = false;
+  createdAudioUrls.forEach(revokeAudioUrl);
+  createdAudioUrls.length = 0;
+
+  localStorage.removeItem(HISTORY_KEY);
+  conversationHistory.value = [];
+  messages.splice(0, messages.length, { ...GREETING_MESSAGE });
+  Object.assign(stats, { turns: 0, jejuWords: 0, stdWords: 0, totalTime: 0 });
+  statsLog.splice(0, statsLog.length);
+}
+
 onBeforeUnmount(() => {
   stopAudio();
   createdAudioUrls.forEach(revokeAudioUrl);
@@ -169,7 +183,7 @@ onBeforeUnmount(() => {
     </nav>
 
     <template v-if="activeTab === 'ars'">
-      <CallHeader />
+      <CallHeader @reset="resetConversation" />
 
       <main class="layout">
         <section class="call-screen">

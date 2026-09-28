@@ -12,7 +12,7 @@ const avgTime = computed(() => (props.stats.turns ? (props.stats.totalTime / pro
 <template>
   <aside class="stats-panel">
     <div class="stats-header">
-      <h3>실시간 데이터베이스</h3>
+      <h3>실시간 상담 현황</h3>
     </div>
 
     <div class="stats-grid">
