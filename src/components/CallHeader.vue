@@ -1,6 +1,7 @@
 <script setup>
 import { useCallTimer } from "../composables/useCallTimer";
 
+const emit = defineEmits(["reset"]);
 const { elapsed } = useCallTimer();
 </script>
 
@@ -13,7 +14,7 @@ const { elapsed } = useCallTimer();
         <p class="call-status"><span class="rec-dot"></span><span>통화중 · {{ elapsed }}</span></p>
       </div>
     </div>
-    <button class="end-call" type="button">종료</button>
+    <button class="reset-chat" type="button" @click="emit('reset')">대화 초기화</button>
   </header>
 </template>
 
@@ -53,7 +54,7 @@ const { elapsed } = useCallTimer();
 }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-.end-call {
+.reset-chat {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--danger);
@@ -63,5 +64,5 @@ const { elapsed } = useCallTimer();
   padding: 7px 12px;
   cursor: pointer;
 }
-.end-call:hover { background: var(--danger-soft); }
+.reset-chat:hover { background: var(--danger-soft); }
 </style>
