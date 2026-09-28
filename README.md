@@ -9,7 +9,9 @@ Production API:
 https://jeju-backend-385248657749.asia-northeast3.run.app
 ```
 
-Web은 녹음된 음성을 `POST /translate`의 `file` multipart field로 전송합니다.
+Web은 녹음된 음성을 `POST /translate`의 `file` multipart field로 전송합니다. 최근 완료 대화
+최대 5턴은 브라우저 `localStorage`에 저장하고, 매 요청의 `history` multipart field로 함께 전송합니다.
+따라서 같은 브라우저에서 새로고침해도 AI가 직전 대화 문맥을 이어서 응답합니다.
 
 예상 응답:
 

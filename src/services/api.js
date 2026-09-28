@@ -8,10 +8,11 @@ function getRecordingExtension(blob) {
   return "webm";
 }
 
-export async function translateAudio(blob) {
+export async function translateAudio(blob, history = []) {
   const ext = getRecordingExtension(blob);
   const formData = new FormData();
   formData.append("file", blob, `recording.${ext}`);
+  formData.append("history", JSON.stringify(history.slice(-5)));
 
   const res = await fetch(`${BASE_URL}/translate`, {
     method: "POST",

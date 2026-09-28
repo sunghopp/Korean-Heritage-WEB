@@ -13,6 +13,43 @@ import {
 } from "./services/audio";
 
 const activeTab = ref("ars");
+const HISTORY_KEY = "jeju-ars-conversation-v1";
+
+function loadConversationHistory() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    if (!Array.isArray(saved)) return [];
+
+    return saved
+      .filter((turn) =>
+        turn &&
+        typeof turn.jeju_text === "string" &&
+        typeof turn.standard_text === "string" &&
+        typeof turn.ars_reply_jeju === "string"
+      )
+      .slice(-5);
+  } catch {
+    return [];
+  }
+}
+
+function toChatMessages(turn) {
+  return [
+    {
+      type: "user",
+      jejuText: turn.jeju_text,
+      standardText: turn.standard_text,
+    },
+    {
+      type: "ai",
+      label: "만덕콜센터 AI 답변",
+      text: turn.ars_reply_jeju,
+      replayable: false,
+    },
+  ];
+}
+
+const conversationHistory = ref(loadConversationHistory());
 
 const messages = reactive([
   {
@@ -20,6 +57,7 @@ const messages = reactive([
     label: "AI 인사",
     text: "안녕하우꽈, 제주120 만덕콜센터 AI 상담원이우다. 행정이나 생활 민원, 교통·관광, 복지 같은 궁금한 거 편하게 말씀해줍서.",
   },
+  ...conversationHistory.value.flatMap(toChatMessages),
 ]);
 
 const stats = reactive({ turns: 0, jejuWords: 0, stdWords: 0, totalTime: 0 });
@@ -63,6 +101,16 @@ async function handleResult(data) {
     audioUrl,
     replayable: Boolean(audioUrl),
   });
+
+  conversationHistory.value = [
+    ...conversationHistory.value,
+    {
+      jeju_text: data.jeju_text || "",
+      standard_text: data.standard_text || "",
+      ars_reply_jeju: data.ars_reply_text || "답변을 생성했습니다.",
+    },
+  ].slice(-5);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(conversationHistory.value));
 
   // 4) 답변을 받는 즉시 TTS 음성 재생
   // 브라우저 자동재생 정책으로 막히는 경우에도 텍스트 클릭으로 다시 재생할 수 있다.
@@ -120,7 +168,7 @@ onBeforeUnmount(() => {
       <main class="layout">
         <section class="call-screen">
           <ChatLog :messages="messages" />
-          <MicButton @result="handleResult" @error="handleError" />
+          <MicButton :history="conversationHistory" @result="handleResult" @error="handleError" />
         </section>
 
         <StatsPanel :stats="stats" :log="statsLog" />
