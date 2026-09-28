@@ -23,7 +23,7 @@ export function base64AudioToObjectUrl(base64, mimeType = "audio/wav") {
  * 새 답변 재생 시 기존 음성은 중지한다.
  * 자동 재생이 브라우저 정책으로 막히더라도 오류를 throw하지 않고 false를 반환한다.
  */
-export async function playAudio(url) {
+export async function playAudio(url, { onEnded } = {}) {
   if (!url) return false;
 
   if (currentAudio) {
@@ -33,12 +33,19 @@ export async function playAudio(url) {
 
   const audio = new Audio(url);
   currentAudio = audio;
+  const finish = () => {
+    if (currentAudio === audio) currentAudio = null;
+    onEnded?.();
+  };
+  audio.addEventListener("ended", finish, { once: true });
+  audio.addEventListener("error", finish, { once: true });
 
   try {
     await audio.play();
     return true;
   } catch (error) {
     console.warn("Audio playback was blocked or failed:", error);
+    finish();
     return false;
   }
 }

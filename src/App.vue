@@ -13,6 +13,7 @@ import {
 } from "./services/audio";
 
 const activeTab = ref("ars");
+const assistantSpeaking = ref(false);
 const HISTORY_KEY = "jeju-ars-conversation-v1";
 
 function loadConversationHistory() {
@@ -115,7 +116,12 @@ async function handleResult(data) {
   // 4) 답변을 받는 즉시 TTS 음성 재생
   // 브라우저 자동재생 정책으로 막히는 경우에도 텍스트 클릭으로 다시 재생할 수 있다.
   if (audioUrl) {
-    await playAudio(audioUrl);
+    assistantSpeaking.value = true;
+    await playAudio(audioUrl, {
+      onEnded: () => {
+        assistantSpeaking.value = false;
+      },
+    });
   }
 
   stats.turns += 1;
@@ -168,7 +174,12 @@ onBeforeUnmount(() => {
       <main class="layout">
         <section class="call-screen">
           <ChatLog :messages="messages" />
-          <MicButton :history="conversationHistory" @result="handleResult" @error="handleError" />
+          <MicButton
+            :history="conversationHistory"
+            :is-assistant-speaking="assistantSpeaking"
+            @result="handleResult"
+            @error="handleError"
+          />
         </section>
 
         <StatsPanel :stats="stats" :log="statsLog" />
