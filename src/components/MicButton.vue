@@ -4,6 +4,12 @@ import { useRecorder } from "../composables/useRecorder";
 import { translateAudio } from "../services/api";
 
 const emit = defineEmits(["result", "error"]);
+const props = defineProps({
+  history: {
+    type: Array,
+    default: () => [],
+  },
+});
 
 const state = ref("idle"); // idle | recording | processing
 const { start, stop } = useRecorder();
@@ -41,7 +47,7 @@ async function handleRelease() {
   }
 
   try {
-    const data = await translateAudio(blob);
+    const data = await translateAudio(blob, props.history);
     emit("result", data);
   } catch (err) {
     console.error(err);
