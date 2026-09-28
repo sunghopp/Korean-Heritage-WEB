@@ -34,8 +34,10 @@ watch(
   flex-direction: column;
   gap: 14px;
   background:
-    radial-gradient(circle at 82% 12%, rgba(79, 179, 168, .12), transparent 30%),
-    linear-gradient(145deg, #102328, #0b1a1e);
+    radial-gradient(ellipse at 20% -10%, rgba(236, 230, 216, .10), transparent 34%),
+    radial-gradient(circle at 82% 12%, rgba(79, 179, 168, .16), transparent 30%),
+    linear-gradient(145deg, rgba(16, 35, 40, .97), rgba(11, 26, 30, .98)),
+    var(--basalt-texture);
   min-height: 320px;
 }
 .chat-log::-webkit-scrollbar { width: 10px; }

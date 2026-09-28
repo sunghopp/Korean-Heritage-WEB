@@ -20,12 +20,29 @@ const { elapsed } = useCallTimer();
 
 <style scoped>
 .call-header {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 15px 22px;
   border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  background:
+    linear-gradient(165deg, rgba(43, 52, 55, .97), rgba(22, 35, 38, .98)),
+    var(--basalt-texture);
+}
+.call-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: .32;
+  background:
+    radial-gradient(ellipse at 18% 20%, rgba(236, 230, 216, .14), transparent 26%),
+    radial-gradient(ellipse at 84% 100%, rgba(79, 179, 168, .18), transparent 38%),
+    var(--basalt-texture);
+  mix-blend-mode: screen;
 }
 .agent-id { display: flex; align-items: center; gap: 12px; }
 .agent-avatar {
