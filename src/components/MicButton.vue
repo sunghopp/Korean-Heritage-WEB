@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  background: var(--surface);
+  background: #0c1b1f;
 }
 .mic-status {
   margin: 0;
@@ -193,8 +193,8 @@ onBeforeUnmount(() => {
   width: 60px; height: 60px;
   border-radius: 50%;
   border: none;
-  background: var(--accent);
-  color: white;
+  background: #eac54f;
+  color: #092328;
   font-size: 1.4rem;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
@@ -202,12 +202,12 @@ onBeforeUnmount(() => {
   user-select: none;
   transition: background 0.15s ease, transform 0.1s ease;
 }
-.mic-btn:hover { background: var(--accent-strong); }
+.mic-btn:hover { background: #f2d979; }
 .mic-btn.listening {
   box-shadow: 0 0 0 calc(4px + 10px * var(--input-level)) rgba(246, 132, 31, 0.22);
 }
 .mic-btn.recording {
-  background: var(--danger);
+  background: var(--accent2);
   transform: scale(1.06);
 }
 .mic-btn.processing {

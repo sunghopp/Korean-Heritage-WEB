@@ -49,11 +49,12 @@ const avgTime = computed(() => (props.stats.turns ? (props.stats.totalTime / pro
 
 <style scoped>
 .stats-panel {
-  padding: 20px 18px;
+  padding: 22px 18px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
+  background: linear-gradient(180deg, #102326, #0a181c);
 }
 .stats-header {
   display: flex;
@@ -61,7 +62,7 @@ const avgTime = computed(() => (props.stats.turns ? (props.stats.totalTime / pro
   justify-content: space-between;
   gap: 8px;
 }
-.stats-header h3 { margin: 0; font-size: 0.95rem; }
+.stats-header h3 { margin: 0; font: 700 1rem var(--font-title); }
 
 .stats-grid {
   display: grid;
@@ -69,9 +70,9 @@ const avgTime = computed(() => (props.stats.turns ? (props.stats.totalTime / pro
   gap: 10px;
 }
 .stat-card {
-  background: var(--surface-alt);
+  background: rgba(32, 55, 57, .72);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 12px 10px;
 }
 .stat-value {
@@ -101,7 +102,7 @@ const avgTime = computed(() => (props.stats.turns ? (props.stats.totalTime / pro
 .stats-log-empty { font-size: 0.78rem; color: var(--text-muted); }
 .stats-log-item {
   font-size: 0.78rem;
-  border-left: 2px solid var(--accent);
+  border-left: 2px solid var(--accent2);
   padding-left: 8px;
 }
 .stats-log-item .log-time {

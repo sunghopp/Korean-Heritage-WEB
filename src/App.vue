@@ -163,24 +163,37 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="app">
-    <nav class="tab-bar">
-      <button
-        type="button"
-        class="tab-button"
-        :class="{ active: activeTab === 'ars' }"
-        @click="activeTab = 'ars'"
-      >
-        🍊 AI ARS 상담
-      </button>
-      <button
-        type="button"
-        class="tab-button"
-        :class="{ active: activeTab === 'flywheel' }"
-        @click="activeTab = 'flywheel'"
-      >
-        📊 데이터 플라이휠
-      </button>
-    </nav>
+    <header class="app-chrome">
+      <div class="tile-wave" aria-hidden="true"></div>
+      <div class="brand-row">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">K·H</span>
+          <div>
+            <p class="brand-name">Korean Heritage</p>
+            <p class="brand-description">사라지는 우리말을 잇는 경험</p>
+          </div>
+        </div>
+
+        <nav class="tab-bar" aria-label="서비스 화면 선택">
+          <button
+            type="button"
+            class="tab-button"
+            :class="{ active: activeTab === 'ars' }"
+            @click="activeTab = 'ars'"
+          >
+            AI ARS 상담
+          </button>
+          <button
+            type="button"
+            class="tab-button"
+            :class="{ active: activeTab === 'flywheel' }"
+            @click="activeTab = 'flywheel'"
+          >
+            데이터 플라이휠
+          </button>
+        </nav>
+      </div>
+    </header>
 
     <template v-if="activeTab === 'ars'">
       <CallHeader @reset="resetConversation" />
@@ -205,27 +218,67 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.app-chrome {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(120deg, #0d2024, #102c31 58%, #153d40);
+}
+.tile-wave {
+  height: 18px;
+  background-color: #28334b;
+  background-image:
+    radial-gradient(ellipse 18px 5px at 11px 0, transparent 61%, rgba(92, 111, 145, 0.54) 63% 72%, transparent 74%),
+    radial-gradient(ellipse 18px 5px at 33px 10px, transparent 61%, rgba(16, 27, 49, 0.78) 63% 72%, transparent 74%),
+    linear-gradient(180deg, #35405b, #202941);
+  background-size: 44px 12px, 44px 12px, 100% 100%;
+}
+.brand-row {
+  min-height: 76px;
+  padding: 13px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.brand-lockup { display: flex; align-items: center; gap: 11px; }
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 37px;
+  color: var(--text);
+  border: 1px solid rgba(236, 230, 216, 0.4);
+  border-radius: 9px;
+  background: linear-gradient(145deg, #315457, #15292d);
+  box-shadow: inset 0 1px rgba(255,255,255,.14);
+  font: 700 0.78rem/1 var(--font-title);
+  letter-spacing: -0.08em;
+}
+.brand-name { margin: 0; color: var(--text); font: 700 0.98rem/1.2 var(--font-title); }
+.brand-description { margin: 3px 0 0; color: var(--text-muted); font-size: 0.7rem; }
 .tab-bar {
   display: flex;
-  gap: 8px;
-  padding: 10px 20px;
-  border-bottom: 1px solid var(--border);
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid rgba(236, 230, 216, 0.14);
+  background: rgba(5, 15, 18, 0.34);
 }
 .tab-button {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
   color: var(--text-muted);
   background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 7px 14px;
+  border: 0;
+  border-radius: 4px;
+  padding: 8px 13px;
   cursor: pointer;
 }
-.tab-button:hover { background: var(--surface-alt); }
+.tab-button:hover { background: rgba(236, 230, 216, 0.08); }
 .tab-button.active {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  border-color: transparent;
+  color: #0b2528;
+  background: var(--accent);
+  font-weight: 600;
 }
 
 .layout {
@@ -245,6 +298,9 @@ onBeforeUnmount(() => {
   border-right: 1px solid var(--border);
 }
 @media (max-width: 820px) {
+  .brand-row { padding: 11px 14px; flex-direction: column; align-items: stretch; gap: 10px; }
+  .tab-bar { width: 100%; }
+  .tab-button { flex: 1; }
   .call-screen { border-right: none; border-bottom: 1px solid var(--border); }
 }
 </style>

@@ -1,19 +1,23 @@
+@import url("https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Hahmlet:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap");
+
 :root {
-  --bg: #f5f6f1;
-  --surface: #ffffff;
-  --surface-alt: #ecefe7;
-  --text: #1e2321;
-  --text-muted: #5b6058;
-  --border: #dadcd2;
-  --accent: #1f6f62;
-  --accent-strong: #16544a;
-  --accent-soft: #d9eae6;
-  --accent2: #e07a2c;
-  --accent2-soft: #fbe4cc;
-  --danger: #d64545;
-  --danger-soft: #f6dcdc;
-  --font-display: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --bg: #07171c;
+  --surface: #0b171a;
+  --surface-alt: #12262a;
+  --surface-elevated: #1a3033;
+  --text: #ece6d8;
+  --text-muted: #a9b3b1;
+  --border: rgba(236, 230, 216, 0.16);
+  --accent: #4fb3a8;
+  --accent-strong: #80d2c7;
+  --accent-soft: rgba(79, 179, 168, 0.16);
+  --accent2: #d2793a;
+  --accent2-soft: rgba(210, 121, 58, 0.18);
+  --danger: #e58b7e;
+  --danger-soft: rgba(196, 69, 47, 0.18);
+  --font-display: "IBM Plex Sans KR", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-title: "Hahmlet", "Gowun Batang", serif;
+  --font-mono: "IBM Plex Sans KR", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 * { box-sizing: border-box; }
@@ -31,7 +35,7 @@ html, body {
 }
 
 .app {
-  max-width: 1080px;
+  max-width: 1120px;
   margin: 0 auto;
   height: 100vh;
   height: 100dvh;

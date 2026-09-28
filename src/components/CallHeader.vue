@@ -8,10 +8,10 @@ const { elapsed } = useCallTimer();
 <template>
   <header class="call-header">
     <div class="agent-id">
-      <span class="agent-avatar">🍊</span>
+      <span class="agent-avatar" aria-hidden="true">AI</span>
       <div>
-        <p class="agent-name">제주어 상담 AI</p>
-        <p class="call-status"><span class="rec-dot"></span><span>통화중 · {{ elapsed }}</span></p>
+        <p class="agent-name">제주어 AI ARS</p>
+        <p class="call-status"><span class="rec-dot"></span><span>상담 연결됨 · {{ elapsed }}</span></p>
       </div>
     </div>
     <button class="reset-chat" type="button" @click="emit('reset')">대화 초기화</button>
@@ -23,18 +23,22 @@ const { elapsed } = useCallTimer();
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
+  padding: 15px 22px;
   border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 .agent-id { display: flex; align-items: center; gap: 12px; }
 .agent-avatar {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: var(--accent2-soft);
+  width: 38px; height: 38px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #2a4649, #14262a);
+  border: 1px solid rgba(79, 179, 168, 0.42);
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.3rem;
+  color: var(--accent-strong);
+  font: 700 0.7rem var(--font-mono);
+  letter-spacing: .06em;
 }
-.agent-name { margin: 0; font-weight: 700; font-size: 0.95rem; }
+.agent-name { margin: 0; font: 700 0.95rem var(--font-title); }
 .call-status {
   margin: 2px 0 0;
   font-family: var(--font-mono);
@@ -59,8 +63,8 @@ const { elapsed } = useCallTimer();
   font-size: 0.75rem;
   color: var(--danger);
   background: transparent;
-  border: 1px solid #d6454540;
-  border-radius: 6px;
+  border: 1px solid rgba(229, 139, 126, 0.48);
+  border-radius: 4px;
   padding: 7px 12px;
   cursor: pointer;
 }

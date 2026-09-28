@@ -49,9 +49,10 @@ async function replayAnswer() {
 
 <style scoped>
 .bubble {
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px 14px;
   max-width: 82%;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .14);
 }
 .bubble-label {
   font-family: var(--font-mono);
@@ -64,7 +65,8 @@ async function replayAnswer() {
 .bubble p:last-child { margin-bottom: 0; }
 .bubble.ai {
   align-self: flex-start;
-  background: var(--accent-soft);
+  border: 1px solid rgba(236, 230, 216, .12);
+  background: linear-gradient(145deg, #263a3d, #17282b);
   color: var(--accent-strong);
 }
 .bubble.ai .ai-answer {
@@ -102,11 +104,11 @@ async function replayAnswer() {
 
 .bubble.user {
   align-self: flex-end;
-  background: var(--accent2-soft);
+  background: linear-gradient(145deg, #68c0b6, #3d9d94);
 }
 .bubble.user .jeju-text { color: var(--text); font-weight: 700; margin: 0; }
-.bubble.user .arrow { font-size: 0.72rem; color: var(--text-muted); margin: 6px 0 2px; }
-.bubble.user .std-text { color: var(--text-muted); margin: 0; }
+.bubble.user .arrow { font-size: 0.72rem; color: #204d4c; margin: 6px 0 2px; }
+.bubble.user .std-text { color: #204d4c; margin: 0; }
 
 .bubble.error {
   align-self: center;
