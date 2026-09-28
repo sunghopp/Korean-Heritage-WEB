@@ -33,14 +33,16 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: var(--surface-alt);
+  background:
+    radial-gradient(circle at 82% 12%, rgba(79, 179, 168, .12), transparent 30%),
+    linear-gradient(145deg, #102328, #0b1a1e);
   min-height: 320px;
 }
 .chat-log::-webkit-scrollbar { width: 10px; }
 .chat-log::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: rgba(169, 179, 177, .46);
   border-radius: 999px;
-  border: 3px solid var(--surface-alt);
+  border: 3px solid #0d1d21;
 }
-.chat-log::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+.chat-log::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 </style>

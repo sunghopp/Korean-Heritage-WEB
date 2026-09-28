@@ -23,16 +23,16 @@ const page = ref(0);
 const total = ref(0);
 
 const STATUS_LABELS = {
-  pending: "Pending",
-  approved: "Approved",
-  rejected: "Rejected",
+  pending: "검수 대기",
+  approved: "학습 반영",
+  rejected: "제외",
 };
 
 const STATUS_FILTERS = ["pending", "approved", "rejected"];
 
 const REVIEWER_LABELS = {
-  system: "System",
-  human: "Human",
+  system: "자동 검수",
+  human: "사람 검수",
 };
 
 const activeStatusFilter = ref(null);
@@ -195,6 +195,15 @@ onMounted(load);
 
 <template>
   <section class="dashboard">
+    <header class="dashboard-heading">
+      <div>
+        <p class="eyebrow">JEJU LANGUAGE DATA LOOP</p>
+        <h2>데이터 플라이휠</h2>
+        <p>제주어 발화가 검수와 학습을 거쳐 더 나은 상담으로 이어집니다.</p>
+      </div>
+      <span class="loop-status">수집 · 검수 · 학습</span>
+    </header>
+
     <div class="stats-grid">
       <div class="stat-card">
         <p class="stat-value">{{ stats.total }}</p>
@@ -313,12 +322,25 @@ onMounted(load);
 .dashboard {
   flex: 1;
   min-height: 0;
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 18px;
   overflow-y: auto;
 }
+
+.dashboard-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.eyebrow { margin: 0 0 7px; color: var(--accent2); font: 500 0.68rem var(--font-mono); letter-spacing: .09em; }
+.dashboard-heading h2 { margin: 0; color: var(--text); font: 700 1.3rem var(--font-title); }
+.dashboard-heading p:not(.eyebrow) { margin: 6px 0 0; color: var(--text-muted); font-size: .78rem; }
+.loop-status { color: var(--accent-strong); border: 1px solid rgba(79, 179, 168, .38); padding: 7px 9px; font-size: .68rem; white-space: nowrap; }
 
 .stats-grid {
   display: grid;
@@ -327,9 +349,9 @@ onMounted(load);
 }
 
 .stat-card {
-  background: var(--surface-alt);
+  background: var(--surface-elevated);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 14px 12px;
 }
 .stat-value {
@@ -357,7 +379,7 @@ onMounted(load);
 
 .table-wrap {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   overflow: auto;
 }
 
@@ -413,7 +435,7 @@ onMounted(load);
   color: var(--text-muted);
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 4px;
   padding: 6px 12px;
   cursor: pointer;
 }
@@ -437,7 +459,7 @@ onMounted(load);
   font-family: var(--font-mono);
   font-size: 0.68rem;
   padding: 3px 8px;
-  border-radius: 5px;
+  border-radius: 3px;
   border: 1px solid var(--border);
   white-space: nowrap;
 }
@@ -463,7 +485,7 @@ onMounted(load);
   font-size: 0.75rem;
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 5px 10px;
   cursor: pointer;
 }
@@ -501,7 +523,7 @@ onMounted(load);
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 6px 8px;
 }
 
@@ -537,7 +559,7 @@ onMounted(load);
   color: var(--text-muted);
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 5px 10px;
   cursor: pointer;
 }
@@ -548,5 +570,10 @@ onMounted(load);
   font-size: 0.75rem;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 680px) {
+  .dashboard { padding: 18px 14px; }
+  .dashboard-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
 }
 </style>
