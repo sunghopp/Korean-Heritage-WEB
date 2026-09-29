@@ -13,13 +13,15 @@ const props = defineProps({
   isAssistantSpeaking: Boolean,
 });
 
-const state = ref("idle"); // idle | listening | recording | processing
+const state = ref("idle"); // idle | listening | confirming | recording | processing
 const inputLevel = ref(0);
 const { enableLevelMonitoring, getInputLevel, start, stop, release } = useRecorder();
 
 // 조용한 실내 기준 RMS 음량값이다. 현장 소음이 크면 이 값만 조정하면 된다.
 const START_THRESHOLD = 0.018;
 const CONTINUE_THRESHOLD = 0.011;
+const VOICE_CONFIRM_MS = 100;
+const CONFIRM_SILENCE_MS = 60;
 const SILENCE_TO_SEND_MS = 1200;
 const MAX_RECORDING_MS = 30000;
 
@@ -27,9 +29,12 @@ let animationFrameId = null;
 let lastVoiceAt = null;
 let recordingStartedAt = null;
 let isStartingRecording = false;
+let candidateStartedAt = null;
+let candidateId = 0;
 
 const statusText = computed(() => {
   if (state.value === "recording") return "듣고 있어요…";
+  if (state.value === "confirming") return "발화를 확인하고 있어요…";
   if (state.value === "processing") return "처리 중…";
   if (state.value === "listening") {
     return props.isAssistantSpeaking ? "AI 답변이 끝나길 기다리고 있어요…" : "말씀을 기다리고 있어요…";
@@ -38,6 +43,7 @@ const statusText = computed(() => {
 });
 const hintText = computed(() => {
   if (state.value === "recording") return "말씀이 끝나면 자동으로 전송됩니다";
+  if (state.value === "confirming") return "말씀이 이어지면 자동으로 녹음을 시작합니다";
   if (state.value === "processing") return "AI가 인식하고 있어요";
   if (state.value === "listening") return "아래 버튼을 누르면 자동 듣기를 종료합니다";
   return "한 번만 눌러 마이크 권한을 허용해주세요";
@@ -59,9 +65,16 @@ function monitorInput() {
   if (!props.isAssistantSpeaking) {
     if (state.value === "listening") {
       if (level >= START_THRESHOLD) {
-        // 첫 소리를 감지한 즉시 MediaRecorder를 시작해야 초성·첫 음절이 녹음에서 빠지지 않는다.
-        startRecording();
+        // 첫 소리는 즉시 버퍼링하고, 아래 confirming 단계에서 잡음 여부를 판별한다.
+        startRecordingCandidate(now);
       }
+    } else if (state.value === "confirming") {
+      if (level >= CONTINUE_THRESHOLD) lastVoiceAt = now;
+
+      const hasStoppedSpeaking = lastVoiceAt && now - lastVoiceAt >= CONFIRM_SILENCE_MS;
+      const isConfirmed = candidateStartedAt && now - candidateStartedAt >= VOICE_CONFIRM_MS;
+      if (hasStoppedSpeaking) discardRecordingCandidate();
+      else if (isConfirmed) confirmRecording();
     } else if (state.value === "recording") {
       if (level >= CONTINUE_THRESHOLD) lastVoiceAt = now;
       const hasBeenSilent = lastVoiceAt && now - lastVoiceAt >= SILENCE_TO_SEND_MS;
@@ -73,22 +86,42 @@ function monitorInput() {
   animationFrameId = requestAnimationFrame(monitorInput);
 }
 
-async function startRecording() {
+async function startRecordingCandidate(now) {
   if (state.value !== "listening" || props.isAssistantSpeaking || isStartingRecording) return;
+  const currentCandidateId = ++candidateId;
   isStartingRecording = true;
+  state.value = "confirming";
+  candidateStartedAt = now;
+  lastVoiceAt = now;
   try {
     await start();
-    const now = performance.now();
-    state.value = "recording";
-    recordingStartedAt = now;
-    lastVoiceAt = now;
+    // 잡음으로 판정돼 먼저 취소된 경우에도 생성된 녹음기는 바로 폐기한다.
+    if (candidateId !== currentCandidateId) await stop();
   } catch (err) {
     console.error(err);
     emit("error", "녹음을 시작하지 못했습니다. 마이크 권한을 확인해주세요.");
     state.value = "listening";
+    candidateStartedAt = null;
+    lastVoiceAt = null;
   } finally {
     isStartingRecording = false;
   }
+}
+
+function confirmRecording() {
+  if (state.value !== "confirming") return;
+  state.value = "recording";
+  recordingStartedAt = candidateStartedAt;
+  candidateStartedAt = null;
+}
+
+async function discardRecordingCandidate() {
+  if (state.value !== "confirming") return;
+  candidateId += 1;
+  state.value = "listening";
+  candidateStartedAt = null;
+  lastVoiceAt = null;
+  await stop();
 }
 
 async function startAutoListening() {
@@ -130,7 +163,8 @@ function toggleAutoListening() {
     startAutoListening();
     return;
   }
-  if (state.value === "listening") {
+  if (state.value === "listening" || state.value === "confirming") {
+    candidateId += 1;
     stopMonitoring();
     release();
     state.value = "idle";
@@ -148,7 +182,7 @@ onBeforeUnmount(() => {
     <p class="mic-status">{{ statusText }}</p>
     <button
       class="mic-btn"
-      :class="{ listening: state === 'listening', recording: state === 'recording', processing: state === 'processing' }"
+      :class="{ listening: state === 'listening' || state === 'confirming', recording: state === 'recording', processing: state === 'processing' }"
       :disabled="state === 'processing'"
       type="button"
       :aria-label="state === 'idle' ? '자동 듣기 시작' : '자동 듣기 종료'"
