@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 import { useRecorder } from "../composables/useRecorder";
 import { translateAudio } from "../services/api";
 
@@ -20,14 +20,13 @@ const { enableLevelMonitoring, getInputLevel, start, stop, release } = useRecord
 // 조용한 실내 기준 RMS 음량값이다. 현장 소음이 크면 이 값만 조정하면 된다.
 const START_THRESHOLD = 0.018;
 const CONTINUE_THRESHOLD = 0.011;
-const VOICE_CONFIRM_MS = 100;
 const SILENCE_TO_SEND_MS = 1200;
 const MAX_RECORDING_MS = 30000;
 
 let animationFrameId = null;
-let speechCandidateStartedAt = null;
 let lastVoiceAt = null;
 let recordingStartedAt = null;
+let isStartingRecording = false;
 
 const statusText = computed(() => {
   if (state.value === "recording") return "듣고 있어요…";
@@ -48,7 +47,6 @@ function stopMonitoring() {
   if (animationFrameId) cancelAnimationFrame(animationFrameId);
   animationFrameId = null;
   inputLevel.value = 0;
-  speechCandidateStartedAt = null;
 }
 
 function monitorInput() {
@@ -61,10 +59,8 @@ function monitorInput() {
   if (!props.isAssistantSpeaking) {
     if (state.value === "listening") {
       if (level >= START_THRESHOLD) {
-        speechCandidateStartedAt ??= now;
-        if (now - speechCandidateStartedAt >= VOICE_CONFIRM_MS) startRecording();
-      } else {
-        speechCandidateStartedAt = null;
+        // 첫 소리를 감지한 즉시 MediaRecorder를 시작해야 초성·첫 음절이 녹음에서 빠지지 않는다.
+        startRecording();
       }
     } else if (state.value === "recording") {
       if (level >= CONTINUE_THRESHOLD) lastVoiceAt = now;
@@ -78,18 +74,20 @@ function monitorInput() {
 }
 
 async function startRecording() {
-  if (state.value !== "listening" || props.isAssistantSpeaking) return;
+  if (state.value !== "listening" || props.isAssistantSpeaking || isStartingRecording) return;
+  isStartingRecording = true;
   try {
     await start();
     const now = performance.now();
     state.value = "recording";
     recordingStartedAt = now;
     lastVoiceAt = now;
-    speechCandidateStartedAt = null;
   } catch (err) {
     console.error(err);
     emit("error", "녹음을 시작하지 못했습니다. 마이크 권한을 확인해주세요.");
     state.value = "listening";
+  } finally {
+    isStartingRecording = false;
   }
 }
 
@@ -138,18 +136,6 @@ function toggleAutoListening() {
     state.value = "idle";
   }
 }
-
-watch(
-  () => props.isAssistantSpeaking,
-  (speaking) => {
-    if (speaking) {
-      speechCandidateStartedAt = null;
-      return;
-    }
-    // TTS가 끝난 직후의 잔향을 새 발화로 잘못 감지하지 않도록 기준 시점을 초기화한다.
-    speechCandidateStartedAt = null;
-  }
-);
 
 onBeforeUnmount(() => {
   stopMonitoring();
