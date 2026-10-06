@@ -2,6 +2,10 @@
 
 ![Vue 3](https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-ready-2496ed?logo=docker&logoColor=white)
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-%EC%A0%91%EC%86%8D-0f766e?style=for-the-badge)](https://jeju-ai-console-385248657749.asia-southeast1.run.app/)
+
+![들엄수다 Demo Web 화면](docs/screenshots/demo-web.png)
+
 > 제주어 AI ARS 통화와 수집 데이터 검수 화면을 제공하는 Vue 웹 클라이언트입니다.
 
 ## 프로젝트 목적
