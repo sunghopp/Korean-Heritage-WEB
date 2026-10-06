@@ -1,12 +1,8 @@
 <script setup>
-import { computed } from "vue";
-
-const props = defineProps({
+defineProps({
   stats: { type: Object, required: true },
   log: { type: Array, required: true },
 });
-
-const avgTime = computed(() => (props.stats.turns ? (props.stats.totalTime / props.stats.turns).toFixed(2) : "–"));
 </script>
 
 <template>
@@ -27,10 +23,6 @@ const avgTime = computed(() => (props.stats.turns ? (props.stats.totalTime / pro
       <div class="stat-card">
         <p class="stat-value">{{ stats.stdWords }}</p>
         <p class="stat-label">번역된 표준어 어절</p>
-      </div>
-      <div class="stat-card">
-        <p class="stat-value">{{ avgTime }}</p>
-        <p class="stat-label">평균 처리 시간(초)</p>
       </div>
     </div>
 

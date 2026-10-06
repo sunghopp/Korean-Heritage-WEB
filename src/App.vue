@@ -5,6 +5,7 @@ import ChatLog from "./components/ChatLog.vue";
 import DashboardView from "./components/DashboardView.vue";
 import MicButton from "./components/MicButton.vue";
 import StatsPanel from "./components/StatsPanel.vue";
+import brandLogo from "./assets/deureomsuda.png";
 import {
   base64AudioToObjectUrl,
   playAudio,
@@ -62,7 +63,7 @@ const messages = reactive([
   ...conversationHistory.value.flatMap(toChatMessages),
 ]);
 
-const stats = reactive({ turns: 0, jejuWords: 0, stdWords: 0, totalTime: 0 });
+const stats = reactive({ turns: 0, jejuWords: 0, stdWords: 0 });
 const statsLog = reactive([]);
 const createdAudioUrls = [];
 
@@ -128,8 +129,6 @@ async function handleResult(data) {
   stats.turns += 1;
   stats.jejuWords += countWords(data.jeju_text);
   stats.stdWords += countWords(data.standard_text);
-  stats.totalTime += Number(data.processing_time) || 0;
-
   statsLog.unshift({
     turn: stats.turns,
     time: new Date().toLocaleTimeString("ko-KR", { hour12: false }),
@@ -151,7 +150,7 @@ function resetConversation() {
   localStorage.removeItem(HISTORY_KEY);
   conversationHistory.value = [];
   messages.splice(0, messages.length, { ...GREETING_MESSAGE });
-  Object.assign(stats, { turns: 0, jejuWords: 0, stdWords: 0, totalTime: 0 });
+  Object.assign(stats, { turns: 0, jejuWords: 0, stdWords: 0 });
   statsLog.splice(0, statsLog.length);
 }
 
@@ -167,11 +166,7 @@ onBeforeUnmount(() => {
       <div class="tile-wave" aria-hidden="true"></div>
       <div class="brand-row">
         <div class="brand-lockup">
-          <span class="brand-mark" aria-hidden="true">K·H</span>
-          <div>
-            <p class="brand-name">Korean Heritage</p>
-            <p class="brand-description">사라지는 우리말을 잇는 경험</p>
-          </div>
+          <img class="brand-logo" :src="brandLogo" alt="들엄수다" />
         </div>
 
         <nav class="tab-bar" aria-label="서비스 화면 선택">
@@ -240,22 +235,8 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 18px;
 }
-.brand-lockup { display: flex; align-items: center; gap: 11px; }
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 37px;
-  height: 37px;
-  color: var(--text);
-  border: 1px solid rgba(236, 230, 216, 0.4);
-  border-radius: 9px;
-  background: linear-gradient(145deg, #315457, #15292d);
-  box-shadow: inset 0 1px rgba(255,255,255,.14);
-  font: 700 0.78rem/1 var(--font-title);
-  letter-spacing: -0.08em;
-}
-.brand-name { margin: 0; color: var(--text); font: 700 0.98rem/1.2 var(--font-title); }
-.brand-description { margin: 3px 0 0; color: var(--text-muted); font-size: 0.7rem; }
+.brand-lockup { display: flex; align-items: center; min-width: 0; }
+.brand-logo { display: block; width: 160px; max-width: 45vw; height: 56px; object-fit: contain; object-position: left center; }
 .tab-bar {
   display: flex;
   align-items: center;
