@@ -14,7 +14,6 @@ import {
 } from "./services/audio";
 
 const activeTab = ref("ars");
-const assistantSpeaking = ref(false);
 const HISTORY_KEY = "jeju-ars-conversation-v1";
 const GREETING_MESSAGE = {
   type: "ai",
@@ -118,12 +117,7 @@ async function handleResult(data) {
   // 4) 답변을 받는 즉시 TTS 음성 재생
   // 브라우저 자동재생 정책으로 막히는 경우에도 텍스트 클릭으로 다시 재생할 수 있다.
   if (audioUrl) {
-    assistantSpeaking.value = true;
-    await playAudio(audioUrl, {
-      onEnded: () => {
-        assistantSpeaking.value = false;
-      },
-    });
+    await playAudio(audioUrl);
   }
 
   stats.turns += 1;
@@ -143,7 +137,6 @@ function handleError(message) {
 
 function resetConversation() {
   stopAudio();
-  assistantSpeaking.value = false;
   createdAudioUrls.forEach(revokeAudioUrl);
   createdAudioUrls.length = 0;
 
@@ -198,7 +191,6 @@ onBeforeUnmount(() => {
           <ChatLog :messages="messages" />
           <MicButton
             :history="conversationHistory"
-            :is-assistant-speaking="assistantSpeaking"
             @result="handleResult"
             @error="handleError"
           />

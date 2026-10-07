@@ -21,7 +21,7 @@ export function useRecorder() {
   }
 
   /**
-   * 녹음 전에 마이크 입력의 음량을 확인하기 위한 analyser를 준비한다.
+   * 녹음 중 마이크 입력의 음량을 표시하기 위한 analyser를 준비한다.
    * AudioContext는 사용자의 버튼 동작 안에서 생성해야 브라우저 정책에 막히지 않는다.
    */
   async function enableLevelMonitoring() {
