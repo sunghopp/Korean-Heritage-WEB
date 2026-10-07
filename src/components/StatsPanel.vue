@@ -108,19 +108,4 @@ defineProps({
   display: block;
   margin-top: 2px;
 }
-
-/* 모바일은 마이크와 채팅이 한 화면에 들어오도록 숫자만 한 줄로 보여준다. */
-@media (max-width: 820px) {
-  .stats-panel {
-    order: -1;
-    padding: 8px 14px;
-    overflow: visible;
-    border-bottom: 1px solid var(--border);
-  }
-  .stats-header, .stats-log { display: none; }
-  .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .stat-card { padding: 6px 8px; }
-  .stat-value { font-size: 1.05rem; }
-  .stat-label { margin-top: 2px; font-size: 0.62rem; }
-}
 </style>

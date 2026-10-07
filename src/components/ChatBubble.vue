@@ -110,10 +110,6 @@ async function replayAnswer() {
 .bubble.user .arrow { font-size: 0.72rem; color: #204d4c; margin: 6px 0 2px; }
 .bubble.user .std-text { color: #204d4c; margin: 0; }
 
-@media (max-width: 820px) {
-  .bubble { max-width: 88%; overflow-wrap: anywhere; }
-}
-
 .bubble.error {
   align-self: center;
   background: var(--danger-soft);

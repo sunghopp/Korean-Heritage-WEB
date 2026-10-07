@@ -86,10 +86,4 @@ const { elapsed } = useCallTimer();
   cursor: pointer;
 }
 .reset-chat:hover { background: var(--danger-soft); }
-
-@media (max-width: 820px) {
-  .call-header { padding: 10px 14px; }
-  .agent-avatar { width: 34px; height: 34px; }
-  .reset-chat { min-height: 40px; }
-}
 </style>

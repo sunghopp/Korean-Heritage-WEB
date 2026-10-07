@@ -142,9 +142,4 @@ onBeforeUnmount(() => {
 }
 .mic-btn:disabled { cursor: not-allowed; }
 .mic-hint { margin: 0; font-size: 0.72rem; color: var(--text-muted); }
-
-@media (max-width: 820px) {
-  .mic-footer { padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); gap: 6px; }
-  .mic-btn { width: 64px; height: 64px; -webkit-tap-highlight-color: transparent; }
-}
 </style>

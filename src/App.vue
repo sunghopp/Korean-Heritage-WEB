@@ -261,7 +261,7 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 @media (max-width: 820px) {
-  .layout { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .layout { grid-template-columns: 1fr; }
 }
 
 .call-screen {
@@ -271,11 +271,9 @@ onBeforeUnmount(() => {
   border-right: 1px solid var(--border);
 }
 @media (max-width: 820px) {
-  .tile-wave { height: 10px; }
-  .brand-row { min-height: 0; padding: 8px 14px; flex-direction: column; align-items: stretch; gap: 8px; }
-  .brand-logo { height: 36px; }
+  .brand-row { padding: 11px 14px; flex-direction: column; align-items: stretch; gap: 10px; }
   .tab-bar { width: 100%; }
-  .tab-button { flex: 1; min-height: 40px; }
-  .call-screen { border-right: none; }
+  .tab-button { flex: 1; }
+  .call-screen { border-right: none; border-bottom: 1px solid var(--border); }
 }
 </style>
