@@ -40,6 +40,9 @@ watch(
     var(--basalt-texture);
   min-height: 320px;
 }
+@media (max-width: 820px) {
+  .chat-log { min-height: 0; padding: 14px; gap: 10px; scrollbar-gutter: auto; }
+}
 .chat-log::-webkit-scrollbar { width: 10px; }
 .chat-log::-webkit-scrollbar-thumb {
   background: rgba(169, 179, 177, .46);
